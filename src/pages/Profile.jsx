@@ -9,6 +9,8 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [userRatings, setUserRatings] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
   const [formData, setFormData] = useState({
     nome: '',
     cognome: '',
@@ -16,26 +18,59 @@ export default function Profile() {
     sesso: '',
     ruolo: ''
   });
+  
   const [passwordData, setPasswordData] = useState({
     newPassword: '',
     confirmPassword: ''
   });
+  
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  // Effetto per caricare i dati e sincronizzare il form
   useEffect(() => {
-    if (userProfile) {
-      setFormData({
-        nome: userProfile.nome || '',
-        cognome: userProfile.cognome || '',
-        dataNascita: userProfile.dataNascita || '',
-        sesso: userProfile.sesso || '',
-        ruolo: userProfile.ruolo || ''
-      });
-      loadUserRatings();
+    async function getProfileData() {
+      // Se l'utente è loggato ma il profilo nel context è vuoto, forziamo la chiamata API
+      if (currentUser && !userProfile) {
+        setLoading(true);
+        try {
+          console.log("Recupero dati profilo per UID:", currentUser.uid);
+          // Questa chiamata apparirà ora nel tab Network
+          const data = await api.getUser(currentUser.uid);
+          // Una volta ricevuti i dati, popoliamo il form localmente
+          if (data) {
+            setFormData({
+              nome: data.nome || '',
+              cognome: data.cognome || '',
+              dataNascita: data.dataNascita || '',
+              sesso: data.sesso || '',
+              ruolo: data.ruolo || ''
+            });
+          }
+        } catch (error) {
+          console.error("Errore nel recupero profilo:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      // Se il profilo è già nel contesto, popoliamo il form e carichiamo i ratings
+      if (userProfile) {
+        setFormData({
+          nome: userProfile.nome || '',
+          cognome: userProfile.cognome || '',
+          dataNascita: userProfile.dataNascita || '',
+          sesso: userProfile.sesso || '',
+          ruolo: userProfile.ruolo || ''
+        });
+        loadUserRatings();
+      }
     }
-  }, [userProfile]);
+
+    getProfileData();
+  }, [userProfile, currentUser]);
 
   async function loadUserRatings() {
+    if (!currentUser?.uid) return;
     try {
       const data = await api.getUserRatings(currentUser.uid);
       setUserRatings(data.ratings || []);
@@ -60,7 +95,6 @@ export default function Profile() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    
     try {
       await updateUserProfile(formData);
       setEditing(false);
@@ -74,12 +108,10 @@ export default function Profile() {
 
   async function handlePasswordSubmit(e) {
     e.preventDefault();
-    
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setMessage({ type: 'error', text: 'Le password non coincidono' });
       return;
     }
-
     if (passwordData.newPassword.length < 6) {
       setMessage({ type: 'error', text: 'La password deve essere di almeno 6 caratteri' });
       return;
@@ -100,6 +132,10 @@ export default function Profile() {
   const avgRating = userRatings.length > 0
     ? (userRatings.reduce((sum, r) => sum + r.stars, 0) / userRatings.length).toFixed(1)
     : 'N/A';
+
+  if (loading && !userProfile) {
+    return <div className="loading-container">Caricamento profilo...</div>;
+  }
 
   return (
     <div className="profile">
@@ -129,67 +165,32 @@ export default function Profile() {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="nome">Nome</label>
-                  <input
-                    type="text"
-                    id="nome"
-                    name="nome"
-                    value={formData.nome}
-                    onChange={handleChange}
-                    required
-                  />
+                  <input type="text" id="nome" name="nome" value={formData.nome} onChange={handleChange} required />
                 </div>
-
                 <div className="form-group">
                   <label htmlFor="cognome">Cognome</label>
-                  <input
-                    type="text"
-                    id="cognome"
-                    name="cognome"
-                    value={formData.cognome}
-                    onChange={handleChange}
-                    required
-                  />
+                  <input type="text" id="cognome" name="cognome" value={formData.cognome} onChange={handleChange} required />
                 </div>
               </div>
 
               <div className="form-group">
                 <label htmlFor="dataNascita">Data di Nascita</label>
-                <input
-                  type="date"
-                  id="dataNascita"
-                  name="dataNascita"
-                  value={formData.dataNascita}
-                  onChange={handleChange}
-                  required
-                />
+                <input type="date" id="dataNascita" name="dataNascita" value={formData.dataNascita} onChange={handleChange} required />
               </div>
 
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="sesso">Sesso</label>
-                  <select
-                    id="sesso"
-                    name="sesso"
-                    value={formData.sesso}
-                    onChange={handleChange}
-                    required
-                  >
+                  <select id="sesso" name="sesso" value={formData.sesso} onChange={handleChange} required>
                     <option value="">Seleziona</option>
                     <option value="M">Maschio</option>
                     <option value="F">Femmina</option>
                     <option value="Altro">Altro</option>
                   </select>
                 </div>
-
                 <div className="form-group">
                   <label htmlFor="ruolo">Ruolo Preferito</label>
-                  <select
-                    id="ruolo"
-                    name="ruolo"
-                    value={formData.ruolo}
-                    onChange={handleChange}
-                    required
-                  >
+                  <select id="ruolo" name="ruolo" value={formData.ruolo} onChange={handleChange} required>
                     <option value="">Seleziona</option>
                     <option value="Portiere">Portiere</option>
                     <option value="Difensore">Difensore</option>
@@ -200,19 +201,15 @@ export default function Profile() {
               </div>
 
               <div className="form-actions">
-                <button type="button" onClick={() => setEditing(false)} className="btn-secondary">
-                  Annulla
-                </button>
-                <button type="submit" className="btn-primary">
-                  Salva Modifiche
-                </button>
+                <button type="button" onClick={() => setEditing(false)} className="btn-secondary">Annulla</button>
+                <button type="submit" className="btn-primary">Salva Modifiche</button>
               </div>
             </form>
           ) : (
             <div className="profile-info">
               <div className="info-row">
                 <span className="info-label">Nome:</span>
-                <span>{userProfile?.nome} {userProfile?.cognome}</span>
+                <span>{userProfile?.nome || formData.nome} {userProfile?.cognome || formData.cognome}</span>
               </div>
               <div className="info-row">
                 <span className="info-label">Email:</span>
@@ -220,73 +217,45 @@ export default function Profile() {
               </div>
               <div className="info-row">
                 <span className="info-label">Data di Nascita:</span>
-                <span>{userProfile?.dataNascita}</span>
+                <span>{userProfile?.dataNascita || formData.dataNascita}</span>
               </div>
               <div className="info-row">
                 <span className="info-label">Sesso:</span>
-                <span>{userProfile?.sesso}</span>
+                <span>{userProfile?.sesso || formData.sesso}</span>
               </div>
               <div className="info-row">
                 <span className="info-label">Ruolo:</span>
-                <span>{userProfile?.ruolo}</span>
+                <span>{userProfile?.ruolo || formData.ruolo}</span>
               </div>
             </div>
           )}
         </div>
 
+        {/* Altre Card: Sicurezza e Statistiche restano invariate */}
         <div className="profile-card">
-          <div className="card-header">
-            <h2>Sicurezza</h2>
-          </div>
-
+          <div className="card-header"><h2>Sicurezza</h2></div>
           {!changingPassword ? (
-            <button onClick={() => setChangingPassword(true)} className="btn-secondary">
-              Cambia Password
-            </button>
+            <button onClick={() => setChangingPassword(true)} className="btn-secondary">Cambia Password</button>
           ) : (
             <form onSubmit={handlePasswordSubmit} className="profile-form">
               <div className="form-group">
                 <label htmlFor="newPassword">Nuova Password</label>
-                <input
-                  type="password"
-                  id="newPassword"
-                  name="newPassword"
-                  value={passwordData.newPassword}
-                  onChange={handlePasswordChange}
-                  required
-                  placeholder="Minimo 6 caratteri"
-                />
+                <input type="password" id="newPassword" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} required placeholder="Minimo 6 caratteri" />
               </div>
-
               <div className="form-group">
                 <label htmlFor="confirmPassword">Conferma Password</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={passwordData.confirmPassword}
-                  onChange={handlePasswordChange}
-                  required
-                />
+                <input type="password" id="confirmPassword" name="confirmPassword" value={passwordData.confirmPassword} onChange={handlePasswordChange} required />
               </div>
-
               <div className="form-actions">
-                <button type="button" onClick={() => setChangingPassword(false)} className="btn-secondary">
-                  Annulla
-                </button>
-                <button type="submit" className="btn-primary">
-                  Aggiorna Password
-                </button>
+                <button type="button" onClick={() => setChangingPassword(false)} className="btn-secondary">Annulla</button>
+                <button type="submit" className="btn-primary">Aggiorna Password</button>
               </div>
             </form>
           )}
         </div>
 
         <div className="profile-card">
-          <div className="card-header">
-            <h2>Statistiche</h2>
-          </div>
-
+          <div className="card-header"><h2>Statistiche</h2></div>
           <div className="stats-grid">
             <div className="stat-item">
               <Star size={24} className="stat-icon" />
@@ -295,7 +264,6 @@ export default function Profile() {
                 <div className="stat-label">Valutazione Media</div>
               </div>
             </div>
-
             <div className="stat-item">
               <div className="stat-value">{userRatings.length}</div>
               <div className="stat-label">Recensioni Ricevute</div>

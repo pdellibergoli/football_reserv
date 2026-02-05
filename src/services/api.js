@@ -1,7 +1,7 @@
 const API_BASE = '/api';
 
 export const api = {
-  // Users
+  // --- USERS ---
   async createUser(userData) {
     const res = await fetch(`${API_BASE}/users`, {
       method: 'POST',
@@ -12,12 +12,14 @@ export const api = {
   },
 
   async getUser(userId) {
-    const res = await fetch(`${API_BASE}/users/${userId}`);
+    // Modificato: ID passato come query parameter per corrispondere a api/users.js
+    const res = await fetch(`${API_BASE}/users?userId=${userId}`);
     return res.json();
   },
 
   async updateUser(userId, userData) {
-    const res = await fetch(`${API_BASE}/users/${userId}`, {
+    // Modificato: ID passato come query parameter
+    const res = await fetch(`${API_BASE}/users?userId=${userId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData)
@@ -25,7 +27,7 @@ export const api = {
     return res.json();
   },
 
-  // Matches
+  // --- MATCHES ---
   async getMatches(filters = {}) {
     const params = new URLSearchParams(filters);
     const res = await fetch(`${API_BASE}/matches?${params}`);
@@ -33,7 +35,8 @@ export const api = {
   },
 
   async getMatch(matchId) {
-    const res = await fetch(`${API_BASE}/matches/${matchId}`);
+    // Modificato: ID passato come query parameter per api/matchs.js
+    const res = await fetch(`${API_BASE}/matches?matchId=${matchId}`);
     return res.json();
   },
 
@@ -46,7 +49,7 @@ export const api = {
     return res.json();
   },
 
-  // Bookings
+  // --- BOOKINGS ---
   async createBooking(bookingData) {
     const res = await fetch(`${API_BASE}/bookings`, {
       method: 'POST',
@@ -57,18 +60,20 @@ export const api = {
   },
 
   async deleteBooking(bookingId) {
-    const res = await fetch(`${API_BASE}/bookings/${bookingId}`, {
+    // Modificato: ID passato come query parameter per api/bookings.js
+    const res = await fetch(`${API_BASE}/bookings?bookingId=${bookingId}`, {
       method: 'DELETE'
     });
     return res.json();
   },
 
   async getUserBookings(userId) {
-    const res = await fetch(`${API_BASE}/bookings/user/${userId}`);
+    // Modificato: ID passato come query parameter
+    const res = await fetch(`${API_BASE}/bookings?userId=${userId}`);
     return res.json();
   },
 
-  // Ratings
+  // --- RATINGS ---
   async createRating(ratingData) {
     const res = await fetch(`${API_BASE}/ratings`, {
       method: 'POST',
@@ -79,12 +84,14 @@ export const api = {
   },
 
   async getMatchRatings(matchId) {
-    const res = await fetch(`${API_BASE}/ratings/match/${matchId}`);
+    // Modificato: ID passato come query parameter per api/ratings.js
+    const res = await fetch(`${API_BASE}/ratings?matchId=${matchId}`);
     return res.json();
   },
 
   async getUserRatings(userId) {
-    const res = await fetch(`${API_BASE}/ratings/user/${userId}`);
+    // Modificato: ID passato come query parameter
+    const res = await fetch(`${API_BASE}/ratings?userId=${userId}`);
     return res.json();
   }
 };

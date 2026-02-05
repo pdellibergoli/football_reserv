@@ -1,61 +1,95 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { api } from '../services/api';
+import { usePlacesWidget } from "react-google-autocomplete";
 import './CreateMatch.css';
 
 export default function CreateMatch() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
   const [formData, setFormData] = useState({
-    citta: '',
-    provincia: '',
-    indirizzo: '',
-    lat: '',
-    lng: '',
+    tipologia: 'Calcio a 5',
     data: '',
     ora: '',
-    tipologia: '5',
+    luogo: '', // Nome del centro sportivo
+    indirizzo: '', // Indirizzo completo da Google
+    citta: '',
+    provincia: '',
     prezzo: '',
-    postiTotali: '10'
+    maxPartecipanti: 10,
+    lat: '',
+    lng: ''
+  });
+
+  // Integrazione Google Places Autocomplete
+  const { ref: placesRef } = usePlacesWidget({
+    apiKey: "LA_TUA_GOOGLE_MAPS_API_KEY", // Sostituisci con la tua chiave API di Google
+    onPlaceSelected: (place) => {
+      const address = place.formatted_address || '';
+      let city = '';
+      let province = '';
+
+      // Estrazione città e provincia dai componenti dell'indirizzo
+      if (place.address_components) {
+        place.address_components.forEach(component => {
+          if (component.types.includes("locality")) city = component.long_name;
+          if (component.types.includes("administrative_area_level_2")) province = component.short_name;
+        });
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        indirizzo: address,
+        citta: city,
+        provincia: province,
+        lat: place.geometry.location.lat().toString(),
+        lng: place.geometry.location.lng().toString()
+      }));
+    },
+    options: {
+      types: ["establishment", "geocode"],
+      componentRestrictions: { country: "it" },
+    },
   });
 
   function handleChange(e) {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     
     if (!formData.lat || !formData.lng) {
-      alert('Per favore inserisci le coordinate (puoi trovarle su Google Maps)');
+      setError('Per favore, seleziona un indirizzo valido dai suggerimenti');
       return;
     }
 
     try {
       setLoading(true);
+      setError('');
       
       const matchData = {
         ...formData,
-        creatorId: currentUser.uid,
-        postiOccupati: 0,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        lat: parseFloat(formData.lat),
-        lng: parseFloat(formData.lng),
-        prezzo: parseFloat(formData.prezzo),
-        postiTotali: parseInt(formData.postiTotali)
+        organizzatoreId: currentUser.uid,
+        organizzatoreEmail: currentUser.email,
+        partecipanti: JSON.stringify([currentUser.uid]),
+        stato: 'aperta',
+        createdAt: new Date().toISOString()
       };
 
-      const result = await api.createMatch(matchData);
-      navigate(`/match/${result.matchId}`);
-    } catch (error) {
-      console.error('Error creating match:', error);
-      alert('Errore nella creazione della partita. Riprova.');
+      await api.createMatch(matchData);
+      navigate('/');
+    } catch (err) {
+      setError('Errore nella creazione della partita. Riprova.');
+      console.error('Error creating match:', err);
     } finally {
       setLoading(false);
     }
@@ -63,179 +97,78 @@ export default function CreateMatch() {
 
   return (
     <div className="create-match">
-      <div className="create-match-header">
-        <h1>Organizza una Partita</h1>
-        <p>Compila i dettagli per creare una nuova partita</p>
-      </div>
+      <div className="create-match-card">
+        <h1>Crea Nuova Partita</h1>
+        
+        {error && <div className="error-message">{error}</div>}
 
-      <form onSubmit={handleSubmit} className="create-match-form">
-        <div className="form-section">
-          <h3>Tipologia Partita</h3>
+        <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="tipologia">Tipo di Calcio</label>
-            <select
-              id="tipologia"
-              name="tipologia"
-              value={formData.tipologia}
-              onChange={handleChange}
-              required
-            >
-              <option value="5">Calcio a 5</option>
-              <option value="7">Calcio a 7</option>
-              <option value="8">Calcio a 8</option>
-              <option value="11">Calcio a 11</option>
+            <label>Tipologia</label>
+            <select name="tipologia" value={formData.tipologia} onChange={handleChange}>
+              <option value="Calcio a 5">Calcio a 5</option>
+              <option value="Calcio a 7">Calcio a 7</option>
+              <option value="Calcio a 8">Calcio a 8</option>
+              <option value="Calcio a 11">Calcio a 11</option>
             </select>
           </div>
 
+          <div className="form-row">
+            <div className="form-group">
+              <label>Data</label>
+              <input type="date" name="data" value={formData.data} onChange={handleChange} required />
+            </div>
+            <div className="form-group">
+              <label>Ora</label>
+              <input type="time" name="ora" value={formData.ora} onChange={handleChange} required />
+            </div>
+          </div>
+
           <div className="form-group">
-            <label htmlFor="postiTotali">Numero di Partecipanti</label>
-            <input
-              type="number"
-              id="postiTotali"
-              name="postiTotali"
-              value={formData.postiTotali}
-              onChange={handleChange}
-              required
-              min="2"
-              max="22"
+            <label>Nome Centro Sportivo</label>
+            <input 
+              type="text" 
+              name="luogo" 
+              placeholder="es. Stadio Comunale" 
+              value={formData.luogo} 
+              onChange={handleChange} 
+              required 
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="prezzo">Prezzo a Persona (€)</label>
+            <label>Cerca Indirizzo</label>
             <input
-              type="number"
-              id="prezzo"
-              name="prezzo"
-              value={formData.prezzo}
-              onChange={handleChange}
-              required
-              min="0"
-              step="0.5"
-              placeholder="Es: 10"
-            />
-          </div>
-        </div>
-
-        <div className="form-section">
-          <h3>Data e Ora</h3>
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="data">Data</label>
-              <input
-                type="date"
-                id="data"
-                name="data"
-                value={formData.data}
-                onChange={handleChange}
-                required
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="ora">Ora</label>
-              <input
-                type="time"
-                id="ora"
-                name="ora"
-                value={formData.ora}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <h3>Luogo</h3>
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="citta">Città</label>
-              <input
-                type="text"
-                id="citta"
-                name="citta"
-                value={formData.citta}
-                onChange={handleChange}
-                required
-                placeholder="Es: Milano"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="provincia">Provincia</label>
-              <input
-                type="text"
-                id="provincia"
-                name="provincia"
-                value={formData.provincia}
-                onChange={handleChange}
-                required
-                placeholder="Es: MI"
-                maxLength="2"
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="indirizzo">Indirizzo Completo</label>
-            <input
+              ref={placesRef}
               type="text"
-              id="indirizzo"
-              name="indirizzo"
-              value={formData.indirizzo}
-              onChange={handleChange}
+              placeholder="Inizia a scrivere l'indirizzo..."
+              className="address-autocomplete"
               required
-              placeholder="Via, numero civico"
             />
+            {formData.indirizzo && (
+              <small className="address-preview">Selezionato: {formData.indirizzo}</small>
+            )}
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="lat">Latitudine</label>
-              <input
-                type="number"
-                id="lat"
-                name="lat"
-                value={formData.lat}
-                onChange={handleChange}
-                required
-                step="any"
-                placeholder="Es: 45.4642"
-              />
+              <label>Prezzo a Persona (€)</label>
+              <input type="number" name="prezzo" value={formData.prezzo} onChange={handleChange} required step="0.5" />
             </div>
-
             <div className="form-group">
-              <label htmlFor="lng">Longitudine</label>
-              <input
-                type="number"
-                id="lng"
-                name="lng"
-                value={formData.lng}
-                onChange={handleChange}
-                required
-                step="any"
-                placeholder="Es: 9.1900"
-              />
+              <label>Max Partecipanti</label>
+              <input type="number" name="maxPartecipanti" value={formData.maxPartecipanti} onChange={handleChange} required />
             </div>
           </div>
 
-          <div className="help-text">
-            💡 Trova le coordinate su <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Google Maps</a>: 
-            clicca con il tasto destro sul luogo e copia latitudine e longitudine
+          <div className="form-actions">
+            <button type="button" onClick={() => navigate('/')} className="btn-secondary">Annulla</button>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Creazione...' : 'Crea Partita'}
+            </button>
           </div>
-        </div>
-
-        <div className="form-actions">
-          <button type="button" onClick={() => navigate('/')} className="btn-secondary">
-            Annulla
-          </button>
-          <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Creazione in corso...' : 'Crea Partita'}
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
