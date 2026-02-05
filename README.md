@@ -39,8 +39,8 @@ Una webapp moderna per organizzare e partecipare a partite di calcetto/calcio ne
 ### 1. Clona il Repository
 
 \`\`\`bash
-git clone <your-repo-url>
-cd calcetto-app
+git clone https://github.com/pdellibergoli/football_reserv
+cd football_reserv
 npm install
 \`\`\`
 
