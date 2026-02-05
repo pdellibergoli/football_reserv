@@ -22,13 +22,17 @@ export function AuthProvider({ children }) {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    // Create user profile in Google Sheets
-    await api.createUser({
+    const newProfile = {
       userId: user.uid,
       email: user.email,
       ...profileData,
       createdAt: new Date().toISOString()
-    });
+    };
+  
+    await api.createUser(newProfile);
+    
+    // Aggiorna manualmente lo stato così il profilo è subito pronto
+    setUserProfile(newProfile);
     
     return user;
   }
