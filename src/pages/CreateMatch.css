@@ -1,0 +1,56 @@
+.create-match {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+  
+.create-match-header {
+margin-bottom: 40px;
+}
+
+.create-match-header h1 {
+font-size: 32px;
+margin-bottom: 8px;
+}
+
+.create-match-header p {
+font-size: 18px;
+color: var(--gray-600);
+}
+
+.create-match-form {
+background: white;
+border-radius: 12px;
+padding: 32px;
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-section {
+margin-bottom: 32px;
+padding-bottom: 32px;
+border-bottom: 2px solid var(--gray-200);
+}
+
+.form-section:last-of-type {
+border-bottom: none;
+margin-bottom: 24px;
+}
+
+.form-section h3 {
+margin-bottom: 20px;
+color: var(--primary);
+}
+
+.help-text {
+margin-top: 12px;
+padding: 12px;
+background: var(--gray-100);
+border-radius: 8px;
+font-size: 14px;
+color: var(--gray-600);
+}
+
+.help-text a {
+color: var(--primary);
+font-weight: 600;
+}

@@ -1,0 +1,50 @@
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { LogOut, User, Plus, Home } from 'lucide-react';
+import './Navbar.css';
+
+export default function Navbar() {
+  const { logout, userProfile } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Failed to log out:', error);
+    }
+  }
+
+  return (
+    <nav className="navbar">
+      <div className="navbar-container">
+        <Link to="/" className="navbar-logo">
+          ⚽ Calcetto App
+        </Link>
+        
+        <div className="navbar-menu">
+          <Link to="/" className="navbar-link">
+            <Home size={20} />
+            <span>Partite</span>
+          </Link>
+          
+          <Link to="/create-match" className="navbar-link">
+            <Plus size={20} />
+            <span>Crea Partita</span>
+          </Link>
+          
+          <Link to="/profile" className="navbar-link">
+            <User size={20} />
+            <span>{userProfile?.nome || 'Profilo'}</span>
+          </Link>
+          
+          <button onClick={handleLogout} className="navbar-link navbar-logout">
+            <LogOut size={20} />
+            <span>Esci</span>
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
+}
