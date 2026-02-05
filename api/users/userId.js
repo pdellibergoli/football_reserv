@@ -4,7 +4,7 @@ const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID;
 const SHEET_NAME = 'Users';
 
 async function getAuthClient() {
-  const auth = new google.auth.GoogleAuth({
+  return new google.auth.GoogleAuth({
     credentials: {
       type: 'service_account',
       project_id: process.env.GOOGLE_PROJECT_ID,
@@ -15,14 +15,12 @@ async function getAuthClient() {
     },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
-
-  return auth;
 }
 
 export default async function handler(req, res) {
-  // Enable CORS
+  // Abilita CORS per le chiamate dal frontend
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -33,18 +31,22 @@ export default async function handler(req, res) {
     const auth = await getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // GET /api/users/:userId
-    if (req.method === 'GET' && req.query.userId) {
+    // Recupera l'ID utente dai parametri (es: /api/users?userId=123) 
+    // o dal percorso se Vercel lo passa così
+    const userId = req.query.userId || req.query.params?.[0];
+
+    // GET /api/users/[userId] - Recupera profilo
+    if (req.method === 'GET' && userId) {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: `${SHEET_NAME}!A:I`,
       });
 
       const rows = response.data.values || [];
-      const user = rows.find(row => row[0] === req.query.userId);
+      const user = rows.find(row => row[0] === userId);
 
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        return res.status(404).json({ error: 'Utente non trovato nel database' });
       }
 
       return res.status(200).json({
@@ -59,24 +61,36 @@ export default async function handler(req, res) {
       });
     }
 
-    // POST /api/users - Create new user
+    // POST /api/users - Crea nuovo profilo (usato in Signup)
     if (req.method === 'POST') {
+      console.log("Dati ricevuti nel backend:", req.body); // DEBUG 1
       const { userId, email, nome, cognome, dataNascita, sesso, ruolo, createdAt } = req.body;
-
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A:I`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [[userId, email, nome, cognome, dataNascita, sesso, ruolo, createdAt]]
-        }
-      });
-
-      return res.status(201).json({ success: true, userId });
+    
+      try {
+        const auth = await getAuthClient();
+        const sheets = google.sheets({ version: 'v4', auth });
+        
+        console.log("Autenticazione Google riuscita, provo a scrivere..."); // DEBUG 2
+    
+        const result = await sheets.spreadsheets.values.append({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${SHEET_NAME}!A:I`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[userId, email, nome, cognome, dataNascita, sesso, ruolo, createdAt]]
+          }
+        });
+    
+        console.log("Scrittura completata con successo!"); // DEBUG 3
+        return res.status(201).json({ success: true, userId });
+      } catch (err) {
+        console.error("ERRORE DURANTE LA SCRITTURA:", err.message); // DEBUG 4
+        return res.status(500).json({ error: err.message });
+      }
     }
 
-    // PUT /api/users/:userId - Update user
-    if (req.method === 'PUT' && req.query.userId) {
+    // PUT /api/users/[userId] - Aggiorna profilo
+    if (req.method === 'PUT' && userId) {
       const { nome, cognome, dataNascita, sesso, ruolo } = req.body;
 
       const response = await sheets.spreadsheets.values.get({
@@ -85,10 +99,10 @@ export default async function handler(req, res) {
       });
 
       const rows = response.data.values || [];
-      const rowIndex = rows.findIndex(row => row[0] === req.query.userId);
+      const rowIndex = rows.findIndex(row => row[0] === userId);
 
       if (rowIndex === -1) {
-        return res.status(404).json({ error: 'User not found' });
+        return res.status(404).json({ error: 'Utente non trovato' });
       }
 
       const range = `${SHEET_NAME}!C${rowIndex + 1}:G${rowIndex + 1}`;
@@ -107,10 +121,14 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: `Metodo ${req.method} non supportato su questa rotta` });
 
   } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ error: 'Internal server error', message: error.message });
+    console.error('Errore API Users:', error);
+    return res.status(500).json({ 
+      error: 'Errore interno del server', 
+      message: error.message,
+      details: error.response?.data || 'Nessun dettaglio aggiuntivo'
+    });
   }
 }
