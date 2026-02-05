@@ -39,25 +39,26 @@ export default async function handler(req, res) {
     if (req.method === 'GET' && userId) {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A:I`,
+        range: `${SHEET_NAME}!A:H`, // Legge da colonna A a H
       });
-
+    
       const rows = response.data.values || [];
       const user = rows.find(row => row[0] === userId);
-
+    
       if (!user) {
-        return res.status(404).json({ error: 'Utente non trovato nel database' });
+        return res.status(404).json({ error: 'Utente non trovato' });
       }
-
+    
+      // Mappatura corretta basata sulle colonne dello Sheet
       return res.status(200).json({
-        userId: user[0],
-        email: user[1],
-        nome: user[2],
-        cognome: user[3],
-        dataNascita: user[4],
-        sesso: user[5],
-        ruolo: user[6],
-        createdAt: user[7]
+        userId: user[0],      // Colonna A
+        email: user[1],       // Colonna B
+        nome: user[2],        // Colonna C
+        cognome: user[3],     // Colonna D
+        dataNascita: user[4], // Colonna E
+        sesso: user[5],       // Colonna F
+        ruolo: user[6],       // Colonna G
+        createdAt: user[7]    // Colonna H
       });
     }
 
