@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET' && !req.query.matchId) {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A:N`,
+        range: 'Matches!A:P',
       });
 
       let rows = response.data.values || [];

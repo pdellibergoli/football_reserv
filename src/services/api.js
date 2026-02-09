@@ -46,6 +46,11 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(matchData)
     });
+    
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Errore server');
+    }
     return res.json();
   },
 
