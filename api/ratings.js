@@ -2,10 +2,9 @@ import { google } from 'googleapis';
 import { v4 as uuidv4 } from 'uuid';
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID;
-const SHEET_NAME = 'Ratings';
 
 async function getAuthClient() {
-  const auth = new google.auth.GoogleAuth({
+  return new google.auth.GoogleAuth({
     credentials: {
       type: 'service_account',
       project_id: process.env.GOOGLE_PROJECT_ID,
@@ -16,94 +15,76 @@ async function getAuthClient() {
     },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
-
-  return auth;
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const auth = await getAuthClient();
+  const sheets = google.sheets({ version: 'v4', auth });
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  // GET: Recupera voti (per matchId o per userId)
+  if (req.method === 'GET') {
+    const { matchId, userId } = req.query;
+    try {
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Ratings!A:G',
+      });
+      const rows = response.data.values || [];
+      let ratings = rows.slice(1).map(r => ({
+        ratingId: r[0], matchId: r[1], fromUserId: r[2], toUserId: r[3],
+        stars: Number(r[4]) || 0, comment: r[5], createdAt: r[6]
+      }));
+
+      if (matchId) ratings = ratings.filter(r => r.matchId === matchId);
+      if (userId) ratings = ratings.filter(r => r.toUserId === userId);
+
+      return res.status(200).json({ ratings });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
   }
 
-  try {
-    const auth = await getAuthClient();
-    const sheets = google.sheets({ version: 'v4', auth });
-
-    // GET /api/ratings/match/:matchId - Get ratings for a match
-    if (req.method === 'GET' && req.query.type === 'match') {
-      const matchId = req.query.matchId;
-      
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A:F`,
-      });
-
-      const rows = response.data.values || [];
-      const ratings = rows
-        .slice(1)
-        .filter(row => row[1] === matchId)
-        .map(row => ({
-          ratingId: row[0],
-          matchId: row[1],
-          userId: row[2],
-          stars: parseInt(row[3]),
-          comment: row[4],
-          createdAt: row[5]
-        }));
-
-      return res.status(200).json({ ratings });
-    }
-
-    // GET /api/ratings/user/:userId - Get ratings for a user
-    if (req.method === 'GET' && req.query.type === 'user') {
-      const userId = req.query.userId;
-      
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A:F`,
-      });
-
-      const rows = response.data.values || [];
-      const ratings = rows
-        .slice(1)
-        .filter(row => row[2] === userId)
-        .map(row => ({
-          ratingId: row[0],
-          matchId: row[1],
-          userId: row[2],
-          stars: parseInt(row[3]),
-          comment: row[4],
-          createdAt: row[5]
-        }));
-
-      return res.status(200).json({ ratings });
-    }
-
-    // POST /api/ratings - Create new rating
-    if (req.method === 'POST') {
-      const { matchId, userId, stars, comment, createdAt } = req.body;
-      const ratingId = uuidv4();
-
+  // POST: Nuovo voto
+  if (req.method === 'POST') {
+    const { matchId, fromUserId, toUserId, stars, comment } = req.body;
+    try {
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A:F`,
+        range: 'Ratings!A:G',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [[ratingId, matchId, userId, stars, comment || '', createdAt]]
+          values: [[uuidv4(), matchId, fromUserId, toUserId, stars, comment, new Date().toISOString()]]
         }
       });
-
-      return res.status(201).json({ success: true, ratingId });
+      return res.status(201).json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
     }
+  }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+  // PUT: Aggiorna voto esistente
+  if (req.method === 'PUT') {
+    const { ratingId } = req.query;
+    const { stars, comment } = req.body;
+    try {
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Ratings!A:G',
+      });
+      const rows = response.data.values || [];
+      const rowIndex = rows.findIndex(r => r[0] === ratingId);
 
-  } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ error: 'Internal server error', message: error.message });
+      if (rowIndex === -1) return res.status(404).json({ error: 'Rating non trovato' });
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Ratings!E${rowIndex + 1}:F${rowIndex + 1}`, // Colonne E (Stars) e F (Comment)
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [[stars, comment]] }
+      });
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
   }
 }

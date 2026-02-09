@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard';
 import MatchDetail from './pages/MatchDetail';
 import CreateMatch from './pages/CreateMatch';
 import Profile from './pages/Profile';
+import Archive from './pages/Archive';
+import RatePlayers from './pages/RatePlayers';
 import Navbar from './components/Navbar';
 import './App.css';
 
@@ -26,7 +28,15 @@ function AppRoutes() {
         <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/match/:id" element={<PrivateRoute><MatchDetail /></PrivateRoute>} />
         <Route path="/create-match" element={<PrivateRoute><CreateMatch /></PrivateRoute>} />
+        <Route path="/edit-match/:id" element={<PrivateRoute><CreateMatch /></PrivateRoute>} /> {/* Per la modifica */}
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        
+        {/* NUOVE ROTTE ARCHIVIO E RATING */}
+        <Route path="/archive" element={<PrivateRoute><Archive /></PrivateRoute>} />
+        <Route path="/rate-players/:matchId" element={<PrivateRoute><RatePlayers /></PrivateRoute>} />
+        
+        {/* Fallback per rotte non esistenti */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>
   );

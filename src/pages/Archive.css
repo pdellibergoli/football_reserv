@@ -1,0 +1,28 @@
+.archive-page { padding: 20px; max-width: 800px; margin: 0 auto; }
+.archive-header { text-align: center; margin-bottom: 40px; }
+.archive-list { display: flex; flex-direction: column; gap: 20px; }
+
+.archive-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 5px solid #2ecc71;
+}
+
+.archive-actions { display: flex; gap: 10px; }
+.btn-rate-players {
+  background: #ffc107;
+  color: black;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}

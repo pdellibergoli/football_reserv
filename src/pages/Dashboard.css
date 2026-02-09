@@ -162,3 +162,71 @@ margin-bottom: 20px;
     grid-template-columns: 1fr;
 }
 }
+
+.match-card {
+    position: relative; /* Indispensabile per posizionare il tasto delete */
+  }
+  
+  .delete-btn-card {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 10;
+    background: #fee2e2; /* Rosso chiarissimo */
+    color: #ef4444; /* Rosso bidoncino */
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .delete-btn-card:hover {
+    background: #ef4444;
+    color: white;
+    transform: scale(1.1);
+  }
+
+  .match-card-body h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.25rem;
+    color: #1a1a1a;
+    line-height: 1.2;
+  }
+  
+  .filter-inputs {
+    display: flex;
+    gap: 20px; /* Spazio tra il blocco Città e il blocco Provincia */
+    margin-top: 15px;
+  }
+  
+  .filter-input {
+    display: flex;
+    flex-direction: column; /* Mette la scritta sopra il campo */
+    gap: 8px; /* Crea lo spazio esatto tra la scritta "Città" e il rettangolo di testo */
+    flex: 1; /* Fa sì che i campi occupino lo spazio equamente */
+  }
+  
+  .filter-input label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #444;
+  }
+  
+  .filter-input input {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+
+  .filter-group {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Spazio tra "Tipologia" e i bottoni */
+  }

@@ -18,54 +18,28 @@ async function getAuthClient() {
     },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
-
   return auth;
 }
 
 async function updateMatchParticipants(sheets, matchId, increment) {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${MATCHES_SHEET}!A:N`,
+    range: `${MATCHES_SHEET}!A:O`,
   });
 
   const rows = response.data.values || [];
   const rowIndex = rows.findIndex(row => row[0] === matchId);
-
   if (rowIndex === -1) return;
 
-  const currentOccupied = parseInt(rows[rowIndex][12] || 0);
-  const newOccupied = currentOccupied + increment;
+  const currentOccupied = parseInt(rows[rowIndex][13] || 0);
+  const newOccupied = Math.max(0, currentOccupied + increment);
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${MATCHES_SHEET}!M${rowIndex + 1}`,
+    range: `${MATCHES_SHEET}!N${rowIndex + 1}`,
     valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: [[newOccupied]]
-    }
+    requestBody: { values: [[newOccupied]] }
   });
-}
-
-async function sendBookingEmail(userId, matchData, isConfirmation) {
-  // Email sending logic with SendGrid
-  if (!process.env.SENDGRID_API_KEY) return;
-
-  // Get user email
-  const auth = await getAuthClient();
-  const sheets = google.sheets({ version: 'v4', auth });
-  
-  const userResponse = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${USERS_SHEET}!A:I`,
-  });
-
-  const users = userResponse.data.values || [];
-  const user = users.find(row => row[0] === userId);
-  
-  if (!user) return;
-
-  // TODO: Implement SendGrid email sending
-  console.log(`Would send ${isConfirmation ? 'confirmation' : 'cancellation'} email to ${user[1]}`);
 }
 
 export default async function handler(req, res) {
@@ -73,116 +47,99 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
     const auth = await getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // GET /api/bookings/user/:userId - Get user bookings
-    if (req.method === 'GET' && req.query.type === 'user') {
-      const userId = req.query.userId;
-      
+    // --- GET: Gestione flessibile ---
+    if (req.method === 'GET') {
+      const { userId, bookingId, matchId, type } = req.query;
+
+      // NUOVA LOGICA: Recupero Partecipanti con Nomi per RatePlayers
+      if (type === 'participants' && matchId) {
+        // 1. Recupera le prenotazioni per questo match
+        const bRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${BOOKINGS_SHEET}!A:D`,
+        });
+        const bRows = bRes.data.values || [];
+        const matchBookings = bRows.filter(row => row[1] === matchId);
+        const userIdsInMatch = matchBookings.map(row => row[2]);
+
+        // 2. Recupera i dati degli utenti
+        const uRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${USERS_SHEET}!A:I`, // Regola se il tuo foglio utenti è più lungo
+        });
+        const uRows = uRes.data.values || [];
+        const allUsers = uRows.slice(1); // Salta header
+
+        // 3. Filtra solo gli utenti presenti nelle prenotazioni
+        const participants = allUsers
+          .filter(u => userIdsInMatch.includes(u[0]))
+          .map(u => ({
+            userId: u[0],
+            nome: u[1],
+            cognome: u[2],
+            ruolo: u[8] // Assicurati che l'indice 8 sia la colonna Ruolo
+          }));
+
+        return res.status(200).json({ participants });
+      }
+
+      // Logica GET standard esistente
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: `${BOOKINGS_SHEET}!A:D`,
       });
-
       const rows = response.data.values || [];
-      const bookings = rows
-        .slice(1)
-        .filter(row => row[2] === userId)
-        .map(row => ({
-          bookingId: row[0],
-          matchId: row[1],
-          userId: row[2],
-          createdAt: row[3]
-        }));
+      const allBookings = rows.slice(1).map(row => ({
+        bookingId: row[0], matchId: row[1], userId: row[2], createdAt: row[3]
+      }));
 
-      return res.status(200).json({ bookings });
+      if (userId) {
+        return res.status(200).json({ bookings: allBookings.filter(b => b.userId === userId) });
+      }
+      if (bookingId) {
+        return res.status(200).json({ booking: allBookings.find(b => b.bookingId === bookingId) });
+      }
+      
+      return res.status(200).json({ bookings: allBookings });
     }
 
-    // POST /api/bookings - Create booking
+    // --- POST & DELETE rimangono come prima ---
     if (req.method === 'POST') {
       const { matchId, userId, createdAt } = req.body;
-      const bookingId = uuidv4();
-
-      // Check if user already has a booking for this match
+      if (!matchId || !userId) return res.status(400).json({ error: 'Missing data' });
       const existingResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${BOOKINGS_SHEET}!A:D`,
+        spreadsheetId: SPREADSHEET_ID, range: `${BOOKINGS_SHEET}!A:D`,
       });
-
       const existingBookings = existingResponse.data.values || [];
-      const hasBooking = existingBookings.some(
-        row => row[1] === matchId && row[2] === userId
-      );
-
-      if (hasBooking) {
-        return res.status(400).json({ error: 'Already booked' });
-      }
-
-      // Create booking
+      const hasBooking = existingBookings.some(row => row[1] === matchId && row[2] === userId);
+      if (hasBooking) return res.status(400).json({ error: 'Already booked' });
       await sheets.spreadsheets.values.append({
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${BOOKINGS_SHEET}!A:D`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [[bookingId, matchId, userId, createdAt]]
-        }
+        spreadsheetId: SPREADSHEET_ID, range: `${BOOKINGS_SHEET}!A:D`, valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [[uuidv4(), matchId, userId, createdAt || new Date().toISOString()]] }
       });
-
-      // Update match participants count
       await updateMatchParticipants(sheets, matchId, 1);
-
-      // Send confirmation email
-      await sendBookingEmail(userId, { matchId }, true);
-
-      return res.status(201).json({ success: true, bookingId });
+      return res.status(201).json({ success: true });
     }
 
-    // DELETE /api/bookings/:bookingId - Cancel booking
-    if (req.method === 'DELETE' && req.query.bookingId) {
+    if (req.method === 'DELETE') {
+      const { bookingId } = req.query;
       const response = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${BOOKINGS_SHEET}!A:D`,
+        spreadsheetId: SPREADSHEET_ID, range: `${BOOKINGS_SHEET}!A:D`,
       });
-
       const rows = response.data.values || [];
-      const rowIndex = rows.findIndex(row => row[0] === req.query.bookingId);
-
-      if (rowIndex === -1) {
-        return res.status(404).json({ error: 'Booking not found' });
-      }
-
+      const rowIndex = rows.findIndex(row => row[0] === bookingId);
+      if (rowIndex === -1) return res.status(404).json({ error: 'Booking not found' });
       const matchId = rows[rowIndex][1];
-      const userId = rows[rowIndex][2];
-
-      // Delete the booking row
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId: SPREADSHEET_ID,
-        requestBody: {
-          requests: [{
-            deleteDimension: {
-              range: {
-                sheetId: 0, // Bookings sheet ID (you may need to adjust this)
-                dimension: 'ROWS',
-                startIndex: rowIndex,
-                endIndex: rowIndex + 1
-              }
-            }
-          }]
-        }
+      await sheets.spreadsheets.values.clear({
+        spreadsheetId: SPREADSHEET_ID, range: `${BOOKINGS_SHEET}!A${rowIndex + 1}:D${rowIndex + 1}`,
       });
-
-      // Update match participants count
       await updateMatchParticipants(sheets, matchId, -1);
-
-      // Send cancellation email
-      await sendBookingEmail(userId, { matchId }, false);
-
       return res.status(200).json({ success: true });
     }
 
@@ -190,6 +147,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('API Error:', error);
-    return res.status(500).json({ error: 'Internal server error', message: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

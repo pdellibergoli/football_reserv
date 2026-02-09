@@ -5,7 +5,7 @@ import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Users, MapPin, Calendar, Euro, Star, UserCircle } from 'lucide-react';
+import { Users, MapPin, Calendar, Euro, Star, UserCircle, Trash2, Edit } from 'lucide-react'; // Aggiunte icone
 import 'leaflet/dist/leaflet.css';
 import './MatchDetail.css';
 
@@ -41,6 +41,18 @@ export default function MatchDetail() {
       console.error('Error loading match:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // FUNZIONE PER ELIMINARE IL MATCH
+  async function handleDeleteMatch() {
+    if (!confirm('Sei sicuro di voler eliminare definitivamente questa partita?')) return;
+    try {
+      await api.deleteMatch(id);
+      navigate('/'); // Torna in home dopo l'eliminazione
+    } catch (error) {
+      console.error('Error deleting match:', error);
+      alert('Errore durante l\'eliminazione.');
     }
   }
 
@@ -99,10 +111,13 @@ export default function MatchDetail() {
     return <div className="error">Partita non trovata</div>;
   }
 
-  const isMatchFull = match.postiOccupati >= match.postiTotali;
-  const canBook = !userBooking && !isMatchFull;
+  const isOwner = currentUser?.uid === match.creatorId; // Controllo se è il creatore
+  const isMatchFull = match.postiOccupati >= match.postiTotali; 
   const matchDate = new Date(match.data);
-  const isPastMatch = matchDate < new Date();
+  const dataOraPartita = new Date(`${match.data}T${match.ora}`);
+  const adesso = new Date();
+  const isPastMatch = dataOraPartita < adesso;
+  const canBook = !userBooking && !isMatchFull && !isPastMatch;
   const avgRating = ratings.length > 0 
     ? (ratings.reduce((sum, r) => sum + r.stars, 0) / ratings.length).toFixed(1)
     : 'N/A';
@@ -110,10 +125,12 @@ export default function MatchDetail() {
   return (
     <div className="match-detail">
       <div className="match-detail-header">
-        <button onClick={() => navigate('/')} className="btn-back">
-          ← Indietro
-        </button>
-        <h1>Calcio a {match.tipologia}</h1>
+      <div className="header-left">
+        <button onClick={() => navigate('/')} className="btn-back">← Indietro</button>
+        {/* Titolo principale: Nome Centro Sportivo */}
+        <h1>{match.luogo}</h1> 
+      </div>
+        
         <div className="match-status">
           <span className="badge">{match.postiOccupati}/{match.postiTotali} partecipanti</span>
         </div>
@@ -168,6 +185,26 @@ export default function MatchDetail() {
             )}
           </div>
 
+          {/* AZIONI AMMINISTRATORE (Modifica ed Elimina) */}
+        {isOwner && (
+          <div className="owner-actions">
+            <button 
+              onClick={() => navigate(`/edit-match/${id}`)} 
+              className="btn-edit-match"
+              title="Modifica partita"
+            >
+              <Edit size={20} /> Modifica
+            </button>
+            <button 
+              onClick={handleDeleteMatch} 
+              className="btn-delete-match"
+              title="Elimina partita"
+            >
+              <Trash2 size={20} /> Elimina
+            </button>
+          </div>
+        )}
+
           {canBook && !isPastMatch && (
             <button onClick={handleBooking} className="btn-primary btn-large">
               Prenota Partita
@@ -194,7 +231,18 @@ export default function MatchDetail() {
         </div>
 
         <div className="map-section">
-          <h3>Posizione</h3>
+          <div className="map-header">
+            <h3>Posizione</h3>
+            <a 
+              href={`https://www.google.com/maps/search/?api=1&query=${match.lat},${match.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+              style={{ marginTop: '10px', display: 'inline-block' }}
+            >
+              Apri in Google Maps
+            </a>
+          </div>
           <div className="map-container">
             <MapContainer 
               center={[match.lat || 45.4642, match.lng || 9.1900]} 
@@ -203,24 +251,17 @@ export default function MatchDetail() {
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               />
               <Marker position={[match.lat || 45.4642, match.lng || 9.1900]}>
                 <Popup>{match.indirizzo}</Popup>
               </Marker>
             </MapContainer>
           </div>
-          <a 
-            href={`https://www.google.com/maps/search/?api=1&query=${match.lat},${match.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary"
-          >
-            Apri in Google Maps
-          </a>
         </div>
       </div>
 
+      {/* Sezione Recensioni (invariata) */}
       {showRatingForm && (
         <div className="rating-form-container">
           <div className="rating-form">

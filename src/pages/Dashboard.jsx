@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext'; // Importiamo l'autenticazione
 import { api } from '../services/api';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Users, MapPin, Calendar, Euro } from 'lucide-react';
+import { Users, MapPin, Calendar, Euro, Trash2 } from 'lucide-react';
 import './Dashboard.css';
 
 export default function Dashboard() {
+  const { currentUser } = useAuth(); // Prendiamo l'utente attuale
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -32,6 +34,21 @@ export default function Dashboard() {
     }
   }
 
+  // NUOVA FUNZIONE PER L'ELIMINAZIONE
+  async function handleDelete(e, matchId) {
+    e.stopPropagation(); // IMPORTANTE: evita che cliccando il cestino si apra il dettaglio
+    if (window.confirm("Sei sicuro di voler eliminare questa partita?")) {
+      try {
+        await api.deleteMatch(matchId);
+        // Ricarichiamo la lista o filtriamo lo stato locale
+        setMatches(prev => prev.filter(m => m.matchId !== matchId));
+      } catch (error) {
+        alert("Errore durante l'eliminazione della partita.");
+        console.error(error);
+      }
+    }
+  }
+
   function handleFilterChange(field, value) {
     setFilters({
       ...filters,
@@ -53,40 +70,20 @@ export default function Dashboard() {
         <p>Trova e prenota la tua prossima partita di calcetto</p>
       </div>
 
+      {/* Sezione Filtri (Invariata) */}
       <div className="filters">
         <div className="filter-group">
           <label>Tipologia</label>
           <div className="filter-buttons">
-            <button
-              className={filters.tipologia === '' ? 'active' : ''}
-              onClick={() => handleFilterChange('tipologia', '')}
-            >
-              Tutte
-            </button>
-            <button
-              className={filters.tipologia === '5' ? 'active' : ''}
-              onClick={() => handleFilterChange('tipologia', '5')}
-            >
-              Calcio a 5
-            </button>
-            <button
-              className={filters.tipologia === '7' ? 'active' : ''}
-              onClick={() => handleFilterChange('tipologia', '7')}
-            >
-              Calcio a 7
-            </button>
-            <button
-              className={filters.tipologia === '8' ? 'active' : ''}
-              onClick={() => handleFilterChange('tipologia', '8')}
-            >
-              Calcio a 8
-            </button>
-            <button
-              className={filters.tipologia === '11' ? 'active' : ''}
-              onClick={() => handleFilterChange('tipologia', '11')}
-            >
-              Calcio a 11
-            </button>
+            {['', '5', '7', '8', '11'].map((t) => (
+              <button
+                key={t}
+                className={filters.tipologia === t ? 'active' : ''}
+                onClick={() => handleFilterChange('tipologia', t)}
+              >
+                {t === '' ? 'Tutte' : `Calcio a ${t}`}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -132,14 +129,27 @@ export default function Dashboard() {
               className="match-card"
               onClick={() => navigate(`/match/${match.matchId}`)}
             >
+              {/* IL BIDONCINO ROSSO */}
+              {currentUser?.uid === match.creatorId && (
+                <button 
+                  className="delete-btn-card" 
+                  onClick={(e) => handleDelete(e, match.matchId)}
+                  title="Elimina partita"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
+
               <div className="match-card-header">
-                <span className="match-type">Calcio a {match.tipologia}</span>
+                <span className="match-type">{match.tipologia}</span>
                 <span className={`availability-badge ${getAvailabilityClass(match.postiOccupati, match.postiTotali)}`}>
                   {match.postiOccupati}/{match.postiTotali}
                 </span>
               </div>
 
               <div className="match-card-body">
+                <h3 className="match-place-name">{match.luogo}</h3>
+
                 <div className="match-info">
                   <Calendar size={18} />
                   <span>

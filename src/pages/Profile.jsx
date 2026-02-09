@@ -26,6 +26,14 @@ export default function Profile() {
   
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleCloseModal = (e) => {
+    if (e.target.className === 'modal-overlay') {
+      setIsModalOpen(false);
+    }
+  };
+
   // Effetto per caricare i dati e sincronizzare il form
   useEffect(() => {
     async function getProfileData() {
@@ -255,22 +263,60 @@ export default function Profile() {
         </div>
 
         <div className="profile-card">
-          <div className="card-header"><h2>Statistiche</h2></div>
+          <div className="card-header"><h2>Statistiche Community</h2></div>
           <div className="stats-grid">
             <div className="stat-item">
               <Star size={24} className="stat-icon" />
               <div>
                 <div className="stat-value">{avgRating} ⭐</div>
-                <div className="stat-label">Valutazione Media</div>
+                <div className="stat-label">Voto Medio</div>
               </div>
             </div>
-            <div className="stat-item">
+            
+            {/* Box Cliccabile per aprire la modale */}
+            <div className="stat-item clickable" onClick={() => setIsModalOpen(true)}>
               <div className="stat-value">{userRatings.length}</div>
-              <div className="stat-label">Recensioni Ricevute</div>
+              <div className="stat-label">Recensioni Ricevute (Vedi)</div>
             </div>
           </div>
         </div>
       </div>
+      {isModalOpen && (
+      <div className="modal-overlay" onClick={handleCloseModal}>
+        <div className="modal-content">
+          <div className="modal-header">
+            <h2>Tutte le Recensioni</h2>
+            <button className="close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
+          </div>
+          <div className="modal-body">
+            {userRatings.length === 0 ? (
+              <p>Nessuna recensione ricevuta.</p>
+            ) : (
+              userRatings.map((rating) => (
+                <div key={rating.ratingId} className="rating-item">
+                  <div className="rating-item-header">
+                    <div className="stars-display">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={14}
+                          fill={i < Number(rating.stars) ? "#ffc107" : "none"}
+                          color={i < Number(rating.stars) ? "#ffc107" : "#d1d5db"}
+                        />
+                      ))}
+                    </div>
+                    <span className="rating-date">
+                      {new Date(rating.createdAt).toLocaleDateString('it-IT')}
+                    </span>
+                  </div>
+                  {rating.comment && <p className="rating-comment">"{rating.comment}"</p>}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }

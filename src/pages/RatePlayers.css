@@ -1,0 +1,177 @@
+:root {
+  --star-active: #ffc107;
+  --star-inactive: #d1d5db;
+  --bg-color: #f9fafb;
+}
+
+.rate-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  background-color: var(--bg-color);
+  min-height: 100vh;
+}
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-weight: 500;
+  margin-bottom: 24px;
+  transition: color 0.2s;
+}
+
+.btn-back:hover {
+  color: #111827;
+}
+
+.rate-page h1 {
+  font-size: 2rem;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #6b7280;
+  margin-bottom: 40px;
+}
+
+/* Lista Giocatori */
+.players-to-rate {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.player-rate-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border: 1px solid #f3f4f6;
+  transition: transform 0.2s;
+}
+
+.player-rate-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Info Giocatore */
+.player-info-basic {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.player-info-basic svg {
+  color: #9ca3af;
+}
+
+.player-info-basic h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.player-info-basic p {
+  margin: 2px 0 0 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* Sistema di Stelline */
+.star-rating-input {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.star-rating-input svg {
+  cursor: pointer;
+  transition: transform 0.1s, color 0.2s;
+}
+
+.star-rating-input svg:hover {
+  transform: scale(1.2);
+}
+
+.star-active {
+  color: var(--star-active);
+}
+
+.star-inactive {
+  color: var(--star-inactive);
+}
+
+/* Commento Textarea */
+.player-rate-card textarea {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 80px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.player-rate-card textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Bottone Invio */
+.btn-submit-ratings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background-color: #10b981; /* Verde smeraldo */
+  color: white;
+  border: none;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+.btn-submit-ratings:hover {
+  background-color: #059669;
+}
+
+.btn-submit-ratings:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .rate-page {
+    padding: 20px;
+  }
+  
+  .player-rate-card {
+    padding: 16px;
+  }
+
+  .star-rating-input {
+    gap: 8px;
+  }
+}

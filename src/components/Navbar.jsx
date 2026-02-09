@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, User, Plus, Home } from 'lucide-react';
+import { LogOut, User, Plus, Home, History } from 'lucide-react'; // Aggiunta History
 import './Navbar.css';
 
 export default function Navbar() {
@@ -20,7 +20,7 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-container">
         <Link to="/" className="navbar-logo">
-          ⚽ Calcetto App
+          ⚽ Football booking
         </Link>
         
         <div className="navbar-menu">
@@ -32,6 +32,12 @@ export default function Navbar() {
           <Link to="/create-match" className="navbar-link">
             <Plus size={20} />
             <span>Crea Partita</span>
+          </Link>
+
+          {/* NUOVO LINK ARCHIVIO */}
+          <Link to="/archive" className="navbar-link">
+            <History size={20} />
+            <span>Archivio</span>
           </Link>
           
           <Link to="/profile" className="navbar-link">

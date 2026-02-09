@@ -12,13 +12,11 @@ export const api = {
   },
 
   async getUser(userId) {
-    // Modificato: ID passato come query parameter per corrispondere a api/users.js
     const res = await fetch(`${API_BASE}/users?userId=${userId}`);
     return res.json();
   },
 
   async updateUser(userId, userData) {
-    // Modificato: ID passato come query parameter
     const res = await fetch(`${API_BASE}/users?userId=${userId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -35,7 +33,6 @@ export const api = {
   },
 
   async getMatch(matchId) {
-    // Modificato: ID passato come query parameter per api/matchs.js
     const res = await fetch(`${API_BASE}/matches?matchId=${matchId}`);
     return res.json();
   },
@@ -54,6 +51,22 @@ export const api = {
     return res.json();
   },
 
+  async updateMatch(matchId, matchData) {
+    const res = await fetch(`${API_BASE}/matches?matchId=${matchId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(matchData)
+    });
+    return res.json();
+  },
+
+  async deleteMatch(matchId) {
+    const res = await fetch(`${API_BASE}/matches?matchId=${matchId}`, {
+      method: 'DELETE'
+    });
+    return res.json();
+  },
+
   // --- BOOKINGS ---
   async createBooking(bookingData) {
     const res = await fetch(`${API_BASE}/bookings`, {
@@ -65,7 +78,6 @@ export const api = {
   },
 
   async deleteBooking(bookingId) {
-    // Modificato: ID passato come query parameter per api/bookings.js
     const res = await fetch(`${API_BASE}/bookings?bookingId=${bookingId}`, {
       method: 'DELETE'
     });
@@ -73,8 +85,13 @@ export const api = {
   },
 
   async getUserBookings(userId) {
-    // Modificato: ID passato come query parameter
     const res = await fetch(`${API_BASE}/bookings?userId=${userId}`);
+    return res.json();
+  },
+
+  async getMatchParticipants(matchId) {
+    const res = await fetch(`${API_BASE}/bookings?matchId=${matchId}&type=participants`);
+    if (!res.ok) throw new Error('Errore nel recupero partecipanti');
     return res.json();
   },
 
@@ -88,15 +105,30 @@ export const api = {
     return res.json();
   },
 
+  async updateRating(ratingId, ratingData) {
+    const res = await fetch(`${API_BASE}/ratings?ratingId=${ratingId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ratingData)
+    });
+    return res.json();
+  },
+
   async getMatchRatings(matchId) {
-    // Modificato: ID passato come query parameter per api/ratings.js
     const res = await fetch(`${API_BASE}/ratings?matchId=${matchId}`);
     return res.json();
   },
 
   async getUserRatings(userId) {
-    // Modificato: ID passato come query parameter
     const res = await fetch(`${API_BASE}/ratings?userId=${userId}`);
     return res.json();
+  },
+
+  async submitRating(ratingData) {
+    // Gestisce sia creazione che aggiornamento se ratingId è presente
+    if (ratingData.ratingId) {
+      return this.updateRating(ratingData.ratingId, ratingData);
+    }
+    return this.createRating(ratingData);
   }
 };

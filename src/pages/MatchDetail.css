@@ -214,3 +214,112 @@ margin-top: 8px;
     grid-template-columns: 1fr;
 }
 }
+
+.match-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.owner-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-delete-match {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #fee2e2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-delete-match:hover {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn-edit-match {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-edit-match:hover {
+  background-color: #d97706;
+  color: white;
+}
+
+/* Fix per Google Maps link */
+.map-section .btn-secondary {
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+}
+
+.map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.map-header h3 {
+  margin: 0; /* Rimuove margini che potrebbero sfasare l'allineamento */
+}
+
+.link-google-maps {
+  font-size: 0.9rem;
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.link-google-maps:hover {
+  text-decoration: underline;
+}
+
+/* Nuova posizione pulsanti Admin sotto la card */
+.owner-actions-bottom {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  margin-bottom: 20px; /* Spazio prima del tastone "Prenota" */
+}
+
+.btn-edit-match, .btn-delete-match {
+  flex: 1; /* Fa sì che i due tasti abbiano la stessa larghezza */
+  justify-content: center;
+  padding: 12px;
+}
+
+/* Rimuovi o aggiorna le vecchie classi se necessario */
+.match-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 30px;
+}
