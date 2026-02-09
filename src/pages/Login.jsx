@@ -31,7 +31,7 @@ export default function Login() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h1>⚽ Calcetto App</h1>
+          <h1>⚽ Football booking</h1>
           <h2>Accedi</h2>
         </div>
         

@@ -1,4 +1,4 @@
-# ⚽ Calcetto App - Organizza Partite di Calcio
+# ⚽ Football booking - Organizza Partite di Calcio
 
 Una webapp moderna per organizzare e partecipare a partite di calcetto/calcio nella tua città.
 
@@ -57,7 +57,7 @@ npm install
 #### 3.1 Crea il Foglio Google
 
 1. Crea un nuovo [Google Sheet](https://sheets.google.com)
-2. Rinomina il foglio in "Calcetto App Database"
+2. Rinomina il foglio in "Football booking Database"
 3. Crea 4 fogli (tabs) con questi nomi esatti:
    - **Users**
    - **Matches**
