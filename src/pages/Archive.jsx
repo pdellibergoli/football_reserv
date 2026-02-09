@@ -94,10 +94,11 @@ export default function Archive() {
                   <Star size={18} /> Vota Giocatori
                 </button>
                 <button 
-                  className="btn-details-small"
+                  className="btn-details-outline"
                   onClick={() => navigate(`/match/${match.matchId}`)}
                 >
-                  Dettagli <ChevronRight size={16} />
+                  <span>Dettagli</span>
+                  <ChevronRight size={16} />
                 </button>
               </div>
             </div>
