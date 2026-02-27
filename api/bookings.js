@@ -71,7 +71,7 @@ export default async function handler(req, res) {
         // 2. Recupera i dati degli utenti
         const uRes = await sheets.spreadsheets.values.get({
           spreadsheetId: SPREADSHEET_ID,
-          range: `${USERS_SHEET}!A:I`, // Regola se il tuo foglio utenti è più lungo
+          range: `${USERS_SHEET}!A:H`, // Regola se il tuo foglio utenti è più lungo
         });
         const uRows = uRes.data.values || [];
         const allUsers = uRows.slice(1); // Salta header
@@ -81,9 +81,9 @@ export default async function handler(req, res) {
           .filter(u => userIdsInMatch.includes(u[0]))
           .map(u => ({
             userId: u[0],
-            nome: u[1],
-            cognome: u[2],
-            ruolo: u[8] // Assicurati che l'indice 8 sia la colonna Ruolo
+            nome: u[2],
+            cognome: u[3],
+            ruolo: u[6] // Assicurati che l'indice 8 sia la colonna Ruolo
           }));
 
         return res.status(200).json({ participants });
