@@ -76,7 +76,8 @@ export default async function handler(req, res) {
     
       // Filtri aggiuntivi
       if (req.query.tipologia) {
-        filtered = filtered.filter(m => m.tipologia.includes === req.query.tipologia);
+        const tipologiaCercata = `Calcio a ${req.query.tipologia}`;
+        filtered = filtered.filter(m => m.tipologia === tipologiaCercata);
       }
       if (req.query.citta) {
         filtered = filtered.filter(m => 
