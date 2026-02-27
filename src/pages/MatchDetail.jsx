@@ -6,20 +6,33 @@ import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Users, MapPin, Calendar, Euro, Star, UserCircle, Trash2, Edit } from 'lucide-react';
+import { ChevronDown, ChevronUp, Users } from 'lucide-react';
+import L from 'leaflet';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import 'leaflet/dist/leaflet.css';
 import './MatchDetail.css';
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+});
 
 export default function MatchDetail() {
   const { id } = useParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [match, setMatch] = useState(null);
-  const [participants, setParticipants] = useState([]); // Nuovo stato
+  const [participants, setParticipants] = useState([]);
   const [ratings, setRatings] = useState([]);
   const [userBooking, setUserBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showRatingForm, setShowRatingForm] = useState(false);
   const [rating, setRating] = useState({ stars: 5, comment: '' });
+  const [showParticipants, setShowParticipants] = useState(false);
 
   useEffect(() => {
     loadMatchData();
@@ -137,19 +150,37 @@ export default function MatchDetail() {
             <div className="info-item"><Users size={20} /><div><strong>Disponibilità</strong><p>{match.postiTotali - match.postiOccupati} posti ancora liberi</p></div></div>
             <div className="info-item"><Euro size={20} /><div><strong>Prezzo</strong><p>€{match.prezzo} a persona</p></div></div>
             
-            {/* NUOVA SEZIONE PARTECIPANTI LISTA */}
-            <div className="participants-list-container">
-              <h4>Giocatori Iscritti</h4>
-              <div className="participants-mini-list">
-                {participants.length === 0 ? <p>Nessun iscritto.</p> : 
-                  participants.map(p => (
-                    <div key={p.userId} className="p-badge">
-                      <div className="p-avatar">{p.nome[0]}{p.cognome[0]}</div>
-                      <span>{p.nome} {p.cognome} ({p.ruolo})</span>
-                    </div>
-                  ))
-                }
+            <div className="participants-collapsible">
+            <div 
+              className="participants-trigger" 
+              onClick={() => setShowParticipants(!showParticipants)}
+            >
+              <div className="trigger-label">
+                <Users size={20} />
+                <span>Giocatori Iscritti ({participants.length}/{match.postiTotali})</span>
               </div>
+              {showParticipants ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </div>
+
+              {showParticipants && (
+                <div className="participants-content animate-fade-in">
+                  {participants.length === 0 ? (
+                    <p className="no-participants">Nessun iscritto al momento.</p>
+                  ) : (
+                    <div className="participants-mini-list">
+                      {participants.map(p => (
+                        <div key={p.userId} className="p-badge">
+                          <div className="p-avatar">{p.nome[0]}{p.cognome[0]}</div>
+                          <div className="p-text">
+                            <span className="p-name">{p.nome} {p.cognome}</span>
+                            <span className="p-role">{p.ruolo}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -179,7 +210,6 @@ export default function MatchDetail() {
         </div>
       </div>
 
-      {/* Sezione Recensioni (come nel tuo codice originale) */}
       {ratings.length > 0 && (
         <div className="ratings-section">
           <h3>Recensioni ({ratings.length})</h3>
