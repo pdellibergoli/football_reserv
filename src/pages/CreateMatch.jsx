@@ -20,13 +20,13 @@ export default function CreateMatch() {
 
   const [formData, setFormData] = useState({
     tipologia: 'Calcio a 5',
-    data: '',
-    ora: '',
+    data: new Date().toISOString().split('T')[0],
+    ora: '18:00',
     luogo: '',
     indirizzo: '',
     citta: '',
     provincia: '',
-    prezzo: '',
+    prezzo: '9',
     maxPartecipanti: 10,
     lat: '',
     lng: ''
@@ -227,15 +227,9 @@ export default function CreateMatch() {
             {formData.lat && <small className="success-text">✓ Indirizzo confermato</small>}
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Prezzo a persona (€)</label>
-              <input type="number" name="prezzo" value={formData.prezzo} onChange={handleChange} required step="0.5" />
-            </div>
-            <div className="form-group">
-              <label>Posti Totali</label>
-              <input type="number" value={formData.maxPartecipanti} readOnly style={{background: '#f0f0f0'}} />
-            </div>
+          <div className="form-group">
+            <label>Prezzo a persona (€)</label>
+            <input type="number" name="prezzo" value={formData.prezzo} onChange={handleChange} required step="0.5" />
           </div>
 
           <div className="form-actions">
