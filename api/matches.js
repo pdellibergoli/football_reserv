@@ -69,10 +69,14 @@ export default async function handler(req, res) {
       const includePast = req.query.includePast === 'true';
     
       let filtered = matches.filter(m => {
-        if (m.status !== 'active') return false;
-        if (includePast) return true;
+        if (m.status !== 'cancelled') return false;
         const dataPartita = new Date(`${m.data}T${m.ora}`);
-        return dataPartita >= adesso;
+
+        if (includePast) {
+          return dataPartita < adesso;
+        } else {
+          return dataPartita >= adesso;
+        }
       });
     
       if (req.query.tipologia) {
