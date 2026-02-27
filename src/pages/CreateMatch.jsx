@@ -87,22 +87,28 @@ export default function CreateMatch() {
   }, [formData.tipologia]);
 
   const performSearch = async (query) => {
+    if (query.length < 4) return; // Aspetta qualche carattere in più per precisione
     setIsSearching(true);
+    
     try {
+      // Usiamo il World Geocoding Service di ArcGIS (molto preciso sui civici italiani)
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&countrycodes=it`
+        `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(query)}&maxLocations=5&outFields=Addr_type,City,PlaceName,Region&countryCode=ITA`
       );
       const data = await response.json();
-      const formatted = data.map(item => ({
-        display_name: item.display_name,
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lon),
-        city: item.address.city || item.address.town || '',
-        province: item.address.county || ''
-      }));
-      setSuggestions(formatted);
+      
+      if (data.candidates) {
+        const formatted = data.candidates.map(item => ({
+          display_name: item.address,
+          lat: item.location.y,
+          lng: item.location.x,
+          city: item.attributes.City || '',
+          province: item.attributes.Region || ''
+        }));
+        setSuggestions(formatted);
+      }
     } catch (err) {
-      console.error("Errore ricerca:", err);
+      console.error("Errore ricerca ArcGIS:", err);
     } finally {
       setIsSearching(false);
     }
