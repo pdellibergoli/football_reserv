@@ -1,3 +1,6 @@
+import { auth } from '../config/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
+
 const API_BASE = '/api';
 
 export const api = {
@@ -9,6 +12,10 @@ export const api = {
       body: JSON.stringify(userData)
     });
     return res.json();
+  },
+
+  async resetPassword(email) {
+    return sendPasswordResetEmail(auth, email);
   },
 
   async getUser(userId) {

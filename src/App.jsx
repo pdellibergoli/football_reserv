@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import Archive from './pages/Archive';
 import RatePlayers from './pages/RatePlayers';
 import Navbar from './components/Navbar';
+import ForgotPassword from './pages/ForgotPassword';
 import './App.css';
 
 function PrivateRoute({ children }) {
@@ -25,17 +26,14 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={currentUser ? <Navigate to="/" /> : <Login />} />
         <Route path="/signup" element={currentUser ? <Navigate to="/" /> : <Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/match/:id" element={<PrivateRoute><MatchDetail /></PrivateRoute>} />
         <Route path="/create-match" element={<PrivateRoute><CreateMatch /></PrivateRoute>} />
-        <Route path="/edit-match/:id" element={<PrivateRoute><CreateMatch /></PrivateRoute>} /> {/* Per la modifica */}
+        <Route path="/edit-match/:id" element={<PrivateRoute><CreateMatch /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-        
-        {/* NUOVE ROTTE ARCHIVIO E RATING */}
         <Route path="/archive" element={<PrivateRoute><Archive /></PrivateRoute>} />
         <Route path="/rate-players/:matchId" element={<PrivateRoute><RatePlayers /></PrivateRoute>} />
-        
-        {/* Fallback per rotte non esistenti */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>

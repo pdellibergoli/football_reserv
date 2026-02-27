@@ -60,6 +60,11 @@ export default function Login() {
               required
               placeholder="••••••••"
             />
+            <div className="auth-helper">
+              <Link to="/forgot-password" title="Recupera la tua password">
+                Password dimenticata?
+              </Link>
+            </div>
           </div>
           
           <button type="submit" disabled={loading} className="btn-primary">
