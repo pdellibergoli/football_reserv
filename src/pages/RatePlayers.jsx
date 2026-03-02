@@ -107,12 +107,12 @@ export default function RatePlayers() {
         {players.map(player => (
           <div key={player.userId} className="player-rate-card">
             <div className="player-info-basic">
-              <div key={p.userId} className="p-badge">
-                <div className="p-avatar">{p.nome[0]}{p.cognome[0]}</div>
-                <div className="p-text">
-                  <h4>{player.nome} {player.cognome}</h4>
-                  <p>{player.ruolo} {ratings[player.userId]?.isUpdate && <span className="already-voted">(Già votato)</span>}</p>
-                </div>
+              <div className="player-avatar-circle">
+                {player.nome}{player.cognome}
+              </div>
+              <div>
+                <h4>{player.nome} {player.cognome}</h4>
+                <p>{player.ruolo} {ratings[player.userId]?.isUpdate && <span className="already-voted">(Già votato)</span>}</p>
               </div>
             </div>
 
