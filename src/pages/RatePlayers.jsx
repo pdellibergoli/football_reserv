@@ -108,7 +108,7 @@ export default function RatePlayers() {
           <div key={player.userId} className="player-rate-card">
             <div className="player-info-basic">
               <div className="player-avatar-circle">
-                {player.nome}{player.cognome}
+                {player.nome[0]}{player.cognome[0]}
               </div>
               <div>
                 <h4>{player.nome} {player.cognome}</h4>

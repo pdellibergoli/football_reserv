@@ -179,7 +179,7 @@
 .player-avatar-circle {
   width: 48px;
   height: 48px;
-  background-color: var(--primary); /* Colore verde coerente con il tasto invio */
+  background-color: var(--primary);
   color: white;
   border-radius: 50%;
   display: flex;
