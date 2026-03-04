@@ -10,7 +10,8 @@ import {
   Search, 
   Trophy, 
   Filter,
-  ChevronRight
+  ChevronRight,
+  Euro
 } from 'lucide-react';
 import './Dashboard.css';
 
