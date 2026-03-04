@@ -68,13 +68,11 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard">
-      {/* Header conforme al CSS */}
       <div className="dashboard-header">
         <h1>Ciao, {currentUser?.displayName || 'Giocatore'}! ⚽</h1>
         <p>Trova la tua prossima sfida o scendi in campo con i tuoi amici.</p>
       </div>
 
-      {/* Sezione Filtri conforme al CSS */}
       <div className="filters">
         <div className="filter-group">
           <label>Tipologia</label>
@@ -113,7 +111,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Griglia Partite */}
       <div className="matches-grid">
         {filteredMatches.length > 0 ? (
           filteredMatches.map(match => {
@@ -127,19 +124,20 @@ export default function Dashboard() {
                 className={`match-card ${isBooked ? 'booked' : ''}`}
                 onClick={() => navigate(`/match/${match.matchId}`)}
               >
-                {/* Badge di iscrizione */}
-                {isBooked && (
-                  <div className="booked-badge">
-                    <Trophy size={12} style={{marginRight: '4px'}} />
-                    ✓ Sei iscritto
-                  </div>
-                )}
-
-                <div className="match-card-header">
-                  <span className="match-type">{match.tipologia}</span>
+                <div className="card-badges-container">
                   <span className={`availability-badge ${isFull ? 'full' : isAlmostFull ? 'almost-full' : 'available'}`}>
                     {match.postiOccupati} / {match.postiTotali}
                   </span>
+                  {isBooked && (
+                    <div className="booked-badge">
+                      <Trophy size={12} style={{marginRight: '4px'}} />
+                      ✓ Sei iscritto
+                    </div>
+                  )}
+                </div>
+
+                <div className="match-card-header">
+                  <span className="match-type">{match.tipologia}</span>
                 </div>
 
                 <div className="match-card-body">
