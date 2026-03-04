@@ -32,9 +32,10 @@ export default async function handler(req, res) {
     // --- GET: RECUPERO PARTITE ---
     if (req.method === 'GET') {
       // Recuperiamo sia i match che le prenotazioni per il conteggio dinamico
+      // Estendiamo il range a E per leggere lo 'status' della prenotazione
       const [matchesRes, bookingsRes] = await Promise.all([
         sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:O' }),
-        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Bookings!A:D' })
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Bookings!A:E' })
       ]);
 
       const rows = matchesRes.data.values || [];
@@ -46,8 +47,13 @@ export default async function handler(req, res) {
       // Trasformiamo i dati in oggetti
       const allMatches = rows.slice(1).map(row => {
         const mId = row[0];
-        // Conteggio dinamico: quante persone sono iscritte a questo matchId in Bookings
-        const realOccupied = bookingRows.filter(b => b[1] === mId).length;
+        
+        // --- MODIFICA FONDAMENTALE ---
+        // Contiamo solo le prenotazioni per questo matchId che hanno status 'confirmed'
+        // Se la colonna status (b[4]) è vuota, la consideriamo 'confirmed' per i vecchi dati
+        const realOccupied = bookingRows.filter(b => 
+          b[1] === mId && (b[4] === 'confirmed' || !b[4])
+        ).length;
 
         return {
           matchId: mId,
@@ -58,51 +64,56 @@ export default async function handler(req, res) {
           indirizzo: row[5],
           lat: parseFloat(row[6]),
           lng: parseFloat(row[7]),
-          data: row[8], // Formato previsto: YYYY-MM-DD
-          ora: row[9],  // Formato previsto: HH:mm
+          data: row[8],
+          ora: row[9],
           tipologia: row[10],
           prezzo: parseFloat(row[11]),
           postiTotali: parseInt(row[12]),
-          postiOccupati: realOccupied, // Valore reale basato sulle righe di prenotazione
+          postiOccupati: realOccupied, // Mostra solo i confermati
           status: row[14] || 'active'
         };
       });
 
-      // Se è richiesto un match specifico tramite ID
       if (req.query.matchId) {
         const singleMatch = allMatches.find(m => m.matchId === req.query.matchId);
         if (!singleMatch) return res.status(404).json({ error: 'Match non trovato' });
-        return res.status(200).json({ match: singleMatch });
+        
+        // Recupera gli utenti per il join
+        const usersRes = await sheets.spreadsheets.values.get({ 
+          spreadsheetId: SPREADSHEET_ID, 
+          range: 'Users!A:G' // Assicurati che arrivi almeno alla colonna D (cognome)
+        });
+        const userRows = usersRes.data.values || [];
+
+        const matchParticipants = bookingRows
+          .filter(b => b[1] === req.query.matchId)
+          .map(b => {
+            const user = userRows.find(u => u[0] === b[2]);
+            return {
+              bookingId: b[0],
+              userId: b[2],
+              status: b[4] || 'confirmed',
+              nome: user ? user[2] : 'Utente',
+              cognome: user ? user[3] : 'Sconosciuto',
+              ruolo: user ? user[6] : 'Giocatore'
+            };
+          });
+
+        return res.status(200).json({ match: singleMatch, participants: matchParticipants });
       }
 
       // Filtraggio per Dashboard vs Archivio
       let filtered = allMatches.filter(m => {
-        // Escludiamo sempre le partite cancellate manualmente
         if (m.status === 'cancelled') return false;
-
-        // Parsing della data combinata
         const dataPartita = new Date(`${m.data}T${m.ora}`);
-
-        // Se la data nel foglio Excel è scritta male, per sicurezza la mostriamo in dashboard
-        if (isNaN(dataPartita.getTime())) {
-          return !includePast; 
-        }
-
-        if (includePast) {
-          // ARCHIVIO: Solo partite passate
-          return dataPartita < adesso;
-        } else {
-          // DASHBOARD: Solo partite future o in corso oggi
-          return dataPartita >= adesso;
-        }
+        if (isNaN(dataPartita.getTime())) return !includePast; 
+        return includePast ? dataPartita < adesso : dataPartita >= adesso;
       });
 
-      // Filtro aggiuntivo per tipologia (se presente nella ricerca)
       if (req.query.tipologia) {
         filtered = filtered.filter(m => m.tipologia.includes(req.query.tipologia));
       }
 
-      // Ordinamento: Archivio (più recenti prima), Dashboard (prossime in arrivo prima)
       filtered.sort((a, b) => {
         const dateA = new Date(`${a.data}T${a.ora}`);
         const dateB = new Date(`${b.data}T${b.ora}`);

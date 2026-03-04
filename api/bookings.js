@@ -2,12 +2,9 @@ import { google } from 'googleapis';
 import { v4 as uuidv4 } from 'uuid';
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID;
-const BOOKINGS_SHEET = 'Bookings';
-const MATCHES_SHEET = 'Matches';
-const USERS_SHEET = 'Users';
 
 async function getAuthClient() {
-  const auth = new google.auth.GoogleAuth({
+  return new google.auth.GoogleAuth({
     credentials: {
       type: 'service_account',
       project_id: process.env.GOOGLE_PROJECT_ID,
@@ -18,135 +15,189 @@ async function getAuthClient() {
     },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
-  return auth;
 }
 
-async function updateMatchParticipants(sheets, matchId, increment) {
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${MATCHES_SHEET}!A:O`,
-  });
+// Funzione corretta per MailerSend via Fetch
+async function sendPromotionEmail(userData, matchData) {
+  const API_KEY = process.env.MAILERSEND_API_KEY;
+  const EMAIL_FROM = process.env.EMAIL_FROM;
+  const APP_URL = process.env.APP_URL || 'https://football-reserv.vercel.app';
 
-  const rows = response.data.values || [];
-  const rowIndex = rows.findIndex(row => row[0] === matchId);
-  if (rowIndex === -1) return;
+  console.log("Tentativo invio email a:", userData.email);
 
-  const currentOccupied = parseInt(rows[rowIndex][13] || 0);
-  const newOccupied = Math.max(0, currentOccupied + increment);
+  const emailBody = {
+    from: { email: EMAIL_FROM, name: "Football Reserv" },
+    to: [{ email: userData.email, name: `${userData.nome} ${userData.cognome}` }],
+    subject: `⚽ Posto liberato! Sei in squadra per la partita a ${matchData.luogo}`,
+    text: `Ciao ${userData.nome}, si è liberato un posto per la partita a ${matchData.luogo}! Sei stato promosso tra i partecipanti confermati. Link: ${APP_URL}/match/${matchData.matchId}`,
+    html: `
+      <div style="font-family: sans-serif; color: #333;">
+        <h2>Ciao ${userData.nome}, buone notizie!</h2>
+        <p>Si è liberato un posto per la partita a <strong>${matchData.luogo}</strong>.</p>
+        <p>Il tuo stato è stato aggiornato: ora sei tra i <strong>partecipanti confermati</strong>.</p>
+        <hr />
+        <p><strong>Dettagli:</strong></p>
+        <ul>
+          <li>Data: ${matchData.data}</li>
+          <li>Ora: ${matchData.ora}</li>
+          <li>Luogo: ${matchData.indirizzo}</li>
+        </ul>
+        <a href="${APP_URL}/match/${matchData.matchId}" 
+           style="background: #2ecc71; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+           Vedi Dettagli Partita
+        </a>
+      </div>
+    `
+  };
 
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${MATCHES_SHEET}!N${rowIndex + 1}`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [[newOccupied]] }
-  });
+  try {
+    const response = await fetch('https://api.mailersend.com/v1/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify(emailBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Errore MailerSend API:", errorText);
+    } else {
+      console.log("Email inviata con successo!");
+    }
+  } catch (error) {
+    console.error("Eccezione durante invio email:", error);
+  }
 }
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
     const auth = await getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // --- GET: Gestione flessibile ---
     if (req.method === 'GET') {
-      const { userId, bookingId, matchId, type } = req.query;
-
-      // NUOVA LOGICA: Recupero Partecipanti con Nomi per RatePlayers
-      if (type === 'participants' && matchId) {
-        // 1. Recupera le prenotazioni per questo match
-        const bRes = await sheets.spreadsheets.values.get({
-          spreadsheetId: SPREADSHEET_ID,
-          range: `${BOOKINGS_SHEET}!A:D`,
-        });
-        const bRows = bRes.data.values || [];
-        const matchBookings = bRows.filter(row => row[1] === matchId);
-        const userIdsInMatch = matchBookings.map(row => row[2]);
-
-        // 2. Recupera i dati degli utenti
-        const uRes = await sheets.spreadsheets.values.get({
-          spreadsheetId: SPREADSHEET_ID,
-          range: `${USERS_SHEET}!A:H`, // Regola se il tuo foglio utenti è più lungo
-        });
-        const uRows = uRes.data.values || [];
-        const allUsers = uRows.slice(1); // Salta header
-
-        // 3. Filtra solo gli utenti presenti nelle prenotazioni
-        const participants = allUsers
-          .filter(u => userIdsInMatch.includes(u[0]))
-          .map(u => ({
-            userId: u[0],
-            nome: u[2],
-            cognome: u[3],
-            ruolo: u[6] // Assicurati che l'indice 8 sia la colonna Ruolo
-          }));
-
-        return res.status(200).json({ participants });
-      }
-
-      // Logica GET standard esistente
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${BOOKINGS_SHEET}!A:D`,
+        range: 'Bookings!A:E',
       });
       const rows = response.data.values || [];
-      const allBookings = rows.slice(1).map(row => ({
-        bookingId: row[0], matchId: row[1], userId: row[2], createdAt: row[3]
+      const bookings = rows.slice(1).map(row => ({
+        bookingId: row[0],
+        matchId: row[1],
+        userId: row[2],
+        createdAt: row[3],
+        status: row[4] || 'confirmed'
       }));
 
-      if (userId) {
-        return res.status(200).json({ bookings: allBookings.filter(b => b.userId === userId) });
+      if (req.query.matchId) {
+        const filtered = bookings.filter(b => b.matchId === req.query.matchId);
+        return res.status(200).json({ bookings: filtered });
       }
-      if (bookingId) {
-        return res.status(200).json({ booking: allBookings.find(b => b.bookingId === bookingId) });
+      if (req.query.userId) {
+        const filtered = bookings.filter(b => b.userId === req.query.userId);
+        return res.status(200).json({ bookings: filtered });
       }
-      
-      return res.status(200).json({ bookings: allBookings });
+      return res.status(200).json({ bookings });
     }
 
-    // --- POST & DELETE rimangono come prima ---
     if (req.method === 'POST') {
-      const { matchId, userId, createdAt } = req.body;
-      if (!matchId || !userId) return res.status(400).json({ error: 'Missing data' });
-      const existingResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID, range: `${BOOKINGS_SHEET}!A:D`,
-      });
-      const existingBookings = existingResponse.data.values || [];
-      const hasBooking = existingBookings.some(row => row[1] === matchId && row[2] === userId);
-      if (hasBooking) return res.status(400).json({ error: 'Already booked' });
+      const { matchId, userId } = req.body;
+      const createdAt = new Date().toISOString();
+
+      const [matchesRes, bookingsRes] = await Promise.all([
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:O' }),
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Bookings!A:E' })
+      ]);
+
+      const matchRow = matchesRes.data.values.find(r => r[0] === matchId);
+      if (!matchRow) return res.status(404).json({ error: 'Match not found' });
+
+      const postiTotali = parseInt(matchRow[12]);
+      const confirmedBookings = (bookingsRes.data.values || []).filter(b => b[1] === matchId && b[4] === 'confirmed');
+
+      const status = confirmedBookings.length < postiTotali ? 'confirmed' : 'waiting';
+
+      const newBooking = [uuidv4(), matchId, userId, createdAt, status];
       await sheets.spreadsheets.values.append({
-        spreadsheetId: SPREADSHEET_ID, range: `${BOOKINGS_SHEET}!A:D`, valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [[uuidv4(), matchId, userId, createdAt || new Date().toISOString()]] }
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Bookings!A:E',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [newBooking] },
       });
-      await updateMatchParticipants(sheets, matchId, 1);
-      return res.status(201).json({ success: true });
+
+      return res.status(201).json({ success: true, status });
     }
 
     if (req.method === 'DELETE') {
       const { bookingId } = req.query;
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID, range: `${BOOKINGS_SHEET}!A:D`,
+
+      const bookingsRes = await sheets.spreadsheets.values.get({ 
+        spreadsheetId: SPREADSHEET_ID, 
+        range: 'Bookings!A:E' 
       });
-      const rows = response.data.values || [];
+      const rows = bookingsRes.data.values || [];
       const rowIndex = rows.findIndex(row => row[0] === bookingId);
-      if (rowIndex === -1) return res.status(404).json({ error: 'Booking not found' });
-      const matchId = rows[rowIndex][1];
+
+      if (rowIndex === -1) return res.status(404).json({ error: 'Prenotazione non trovata' });
+
+      const deletedRow = rows[rowIndex];
+      const matchId = deletedRow[1];
+      const wasConfirmed = deletedRow[4] === 'confirmed';
+
+      // 1. Rimuovi la prenotazione (pulizia riga)
       await sheets.spreadsheets.values.clear({
-        spreadsheetId: SPREADSHEET_ID, range: `${BOOKINGS_SHEET}!A${rowIndex + 1}:D${rowIndex + 1}`,
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Bookings!A${rowIndex + 1}:E${rowIndex + 1}`,
       });
-      await updateMatchParticipants(sheets, matchId, -1);
+
+      // 2. Se chi ha cancellato era confermato, cerchiamo il primo "waiting"
+      if (wasConfirmed) {
+        // Cerchiamo la riga "waiting" più vecchia per quel matchId
+        const waitingIndex = rows.findIndex(r => r[1] === matchId && r[4] === 'waiting');
+        console.log("Riga cancellata era confirmed, cerco waiting da promuovere. Waiting trovato a indice:", waitingIndex);
+        if (waitingIndex !== -1) {
+          const waitingUser = rows[waitingIndex];
+          const waitingUserId = waitingUser[2];
+
+          // Promozione a confirmed
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `Bookings!E${waitingIndex + 1}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [['confirmed']] },
+          });
+
+          // Recupera info Match e Utente per la mail
+          const [usersRes, matchesRes] = await Promise.all([
+            sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A:G' }),
+            sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:K' })
+          ]);
+
+          const userRow = usersRes.data.values.find(u => u[0] === waitingUserId);
+          const matchRow = matchesRes.data.values.find(m => m[0] === matchId);
+
+          if (userRow && matchRow) {
+            console.log(`Promuovendo utente ${userRow[1]} da waiting a confirmed per match ${matchRow[4]}`);
+            // ATTENZIONE AGLI INDICI: 0:ID, 1:Email, 2:Nome, 3:Cognome
+            await sendPromotionEmail(
+              { email: userRow[1], nome: userRow[2], cognome: userRow[3] },
+              { luogo: matchRow[4], indirizzo: matchRow[5], data: matchRow[8], ora: matchRow[9], matchId }
+            );
+            console.log("Email di promozione inviata a:", userRow[1]);
+          }
+        }
+      }
+
       return res.status(200).json({ success: true });
     }
-
-    return res.status(405).json({ error: 'Method not allowed' });
-
   } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: error.message });
   }
 }

@@ -6,7 +6,7 @@ import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Users, MapPin, Calendar, Clock, Euro, 
-  ChevronDown, ChevronUp, CheckCircle, Trash2, Edit 
+  ChevronDown, ChevronUp, CheckCircle, Trash2, Edit, Clock8 
 } from 'lucide-react';
 
 // FIX ICONE LEAFLET
@@ -35,40 +35,90 @@ export default function MatchDetail() {
   const [loading, setLoading] = useState(true);
   const [showParticipants, setShowParticipants] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [id, currentUser]);
-
+  // Definizione della funzione loadData all'interno del componente per poterla riutilizzare
   async function loadData() {
     try {
-      setLoading(true);
-      const matchData = await api.getMatch(id);
-      setMatch(matchData.match);
-
-      const participantsData = await api.getMatchParticipants(id);
-      setParticipants(participantsData.participants || []);
+      // Non resettiamo il loading se la funzione è chiamata dopo una prenotazione per evitare flickers
+      const data = await api.getMatch(id);
+      
+      if (data.match) {
+        setMatch(data.match);
+      }
+      
+      if (data.participants) {
+        setParticipants(data.participants);
+      }
 
       if (currentUser) {
-        const userBookingsData = await api.getUserBookings(currentUser.uid);
-        const booking = userBookingsData.bookings?.find(b => b.matchId === id);
+        const bookingsData = await api.getUserBookings(currentUser.uid);
+        const booking = bookingsData.bookings?.find(b => b.matchId === id);
         setUserBooking(booking);
       }
     } catch (error) {
-      console.error('Errore caricamento match:', error);
+      console.error('Errore caricamento dati:', error);
     } finally {
       setLoading(false);
     }
   }
 
+  // useEffect ottimizzato per evitare chiamate infinite
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true);
+        const data = await api.getMatch(id);
+        
+        if (!isMounted) return;
+
+        if (data.match) {
+          setMatch(data.match);
+        }
+        
+        if (data.participants) {
+          setParticipants(data.participants);
+        }
+
+        if (currentUser) {
+          const bookingsData = await api.getUserBookings(currentUser.uid);
+          if (isMounted) {
+            const booking = bookingsData.bookings?.find(b => b.matchId === id);
+            setUserBooking(booking);
+          }
+        }
+      } catch (error) {
+        console.error('Errore caricamento dati iniziale:', error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchInitialData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, currentUser?.uid]);
+
   async function handleBooking() {
     try {
-      await api.createBooking({
+      const res = await api.createBooking({
         matchId: id,
         userId: currentUser.uid,
         createdAt: new Date().toISOString()
       });
+      
+      if (res.status === 'waiting') {
+        alert('Partita piena! Sei stato inserito in lista d\'attesa. Ti avviseremo via mail se si libera un posto.');
+      } else {
+        alert('Prenotazione confermata con successo!');
+      }
+      
+      // Ricarica i dati per aggiornare lo stato locale
       await loadData();
     } catch (error) {
+      console.error('Errore durante la prenotazione:', error);
       alert('Errore durante la prenotazione.');
     }
   }
@@ -77,8 +127,10 @@ export default function MatchDetail() {
     if (!confirm('Vuoi davvero cancellare la tua prenotazione?')) return;
     try {
       await api.deleteBooking(userBooking.bookingId);
+      // Ricarica i dati per aggiornare lo stato locale e vedere se qualcun altro è stato promosso
       await loadData();
     } catch (error) {
+      console.error('Errore durante la cancellazione:', error);
       alert('Errore durante la cancellazione.');
     }
   }
@@ -89,6 +141,7 @@ export default function MatchDetail() {
       await api.deleteMatch(id);
       navigate('/');
     } catch (error) {
+      console.error('Errore eliminazione match:', error);
       alert('Errore durante l\'eliminazione.');
     }
   }
@@ -99,6 +152,10 @@ export default function MatchDetail() {
   const isFull = match.postiOccupati >= match.postiTotali;
   const isOwner = currentUser?.uid === match.creatorId;
 
+  // Filtriamo i partecipanti per visualizzarli nelle liste corrette
+  const confirmedPlayers = participants.filter(p => !p.status || p.status === 'confirmed');
+  const waitingPlayers = participants.filter(p => p.status === 'waiting');
+
   return (
     <div className="match-detail">
       <div className="match-detail-header">
@@ -107,7 +164,11 @@ export default function MatchDetail() {
           <h1>{match.luogo}</h1>
           <div className="match-status">
             <span className="badge">{match.postiOccupati}/{match.postiTotali} partecipanti</span>
-            {userBooking && <span className="status-confirmed-badge">✓ Sei iscritto</span>}
+            {userBooking && (
+              <span className={`status-confirmed-badge ${userBooking.status}`}>
+                {userBooking.status === 'confirmed' ? '✓ Sei iscritto' : '⏳ In lista d\'attesa'}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -156,22 +217,43 @@ export default function MatchDetail() {
               <div className="participants-trigger" onClick={() => setShowParticipants(!showParticipants)}>
                 <div className="trigger-label">
                   <Users size={20} />
-                  <span>Giocatori Iscritti ({participants.length}/{match.postiTotali})</span>
+                  <span>Giocatori Iscritti ({confirmedPlayers.length}/{match.postiTotali})</span>
                 </div>
                 {showParticipants ? <ChevronUp /> : <ChevronDown />}
               </div>
               
               {showParticipants && (
                 <div className="participants-content animate-fade-in">
-                  {participants.length === 0 ? <p className="no-matches">Nessun iscritto.</p> : (
+                  {confirmedPlayers.length === 0 ? (
+                    <p className="no-matches">Nessun iscritto confermato.</p>
+                  ) : (
                     <div className="participants-mini-list">
-                      {participants.map(p => (
-                        <div key={p.userId} className="p-badge">
-                          <div className="p-avatar">{p.nome[0]}{p.cognome[0]}</div>
-                          <div className="p-text">
-                            <span className="p-name">{p.nome} {p.cognome}</span>
-                            <span className="p-role">{p.ruolo}</span>
+                      {confirmedPlayers.map(p => (
+                        <div key={p.userId || Math.random()} className="p-badge">
+                          <div className="p-avatar">
+                            {p.nome ? p.nome[0] : (p.userId ? 'U' : '?')}
+                            {p.cognome ? p.cognome[0] : ''}
                           </div>
+                          <div className="p-text">
+                            <span className="p-name">
+                              {p.nome ? `${p.nome} ${p.cognome || ''}` : `Utente ID: ${p.userId?.substring(0,5)}...`}
+                            </span>
+                            <span className="p-role">{p.ruolo || 'Giocatore'}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {waitingPlayers.length > 0 && (
+                    <div className="waitlist-mini-section" style={{marginTop:'20px', borderTop:'1px solid #eee', paddingTop:'10px'}}>
+                      <h4 style={{fontSize:'0.9rem', marginBottom:'10px', color: '#f39c12'}}>In lista d'attesa:</h4>
+                      {waitingPlayers.map((p, index) => (
+                        <div key={p.userId || index} className="p-badge waiting">
+                          <span className="wait-pos">#{index + 1}</span>
+                          <span className="p-name">
+                            {p.nome ? `${p.nome} ${p.cognome || ''}` : `ID: ${p.userId?.substring(0,5)}...`}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -181,7 +263,7 @@ export default function MatchDetail() {
             </div>
           </div>
 
-          {/* AZIONI ADMIN (Sotto la card come richiesto dal CSS) */}
+          {/* AZIONI ADMIN */}
           {isOwner && (
             <div className="owner-actions-bottom">
               <button onClick={() => navigate(`/edit-match/${id}`)} className="btn-edit-match">
@@ -196,11 +278,19 @@ export default function MatchDetail() {
           {/* AZIONI PRENOTAZIONE */}
           <div className="booking-actions">
             {userBooking ? (
-              <div className="booking-confirmation-box">
-                <CheckCircle color="#27ae60" size={24} style={{marginBottom: '10px'}} />
-                <p>La tua presenza è confermata!</p>
+              <div className={`booking-confirmation-box ${userBooking.status}`}>
+                {userBooking.status === 'confirmed' ? (
+                  <CheckCircle color="#27ae60" size={24} style={{marginBottom: '10px'}} />
+                ) : (
+                  <Clock8 color="#f39c12" size={24} style={{marginBottom: '10px'}} />
+                )}
+                <p>
+                  {userBooking.status === 'confirmed' 
+                    ? 'La tua presenza è confermata!' 
+                    : 'Sei in lista d\'attesa per questa partita.'}
+                </p>
                 <button onClick={handleCancelBooking} className="btn-delete-match" style={{width: '100%', justifyContent: 'center'}}>
-                  Cancella Prenotazione
+                  Annulla {userBooking.status === 'confirmed' ? 'Prenotazione' : 'Richiesta'}
                 </button>
               </div>
             ) : (
@@ -209,17 +299,16 @@ export default function MatchDetail() {
                 style={{
                   width: '100%', 
                   padding: '16px', 
-                  backgroundColor: isFull ? '#ccc' : 'var(--primary)', 
+                  backgroundColor: isFull ? '#f39c12' : 'var(--primary)', 
                   color: 'white', 
                   border: 'none', 
                   borderRadius: '8px', 
                   fontWeight: '700',
-                  cursor: isFull ? 'not-allowed' : 'pointer'
+                  cursor: 'pointer'
                 }}
-                disabled={isFull}
                 onClick={handleBooking}
               >
-                {isFull ? 'PARTITA COMPLETA' : 'PRENOTA POSTO'}
+                {isFull ? 'METTITI IN LISTA D\'ATTESA' : 'PRENOTA POSTO'}
               </button>
             )}
           </div>
