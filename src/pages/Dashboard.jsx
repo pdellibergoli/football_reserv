@@ -1,183 +1,187 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext'; // Importiamo l'autenticazione
 import { api } from '../services/api';
-import { format } from 'date-fns';
-import { it } from 'date-fns/locale';
-import { Users, MapPin, Calendar, Euro, Trash2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  Users, 
+  Search, 
+  Trophy, 
+  Filter,
+  ChevronRight
+} from 'lucide-react';
 import './Dashboard.css';
 
 export default function Dashboard() {
-  const { currentUser } = useAuth(); // Prendiamo l'utente attuale
-  const [matches, setMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    tipologia: '',
-    citta: '',
-    provincia: ''
-  });
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
+  
+  const [matches, setMatches] = useState([]);
+  const [userMatchIds, setUserMatchIds] = useState([]); 
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedType, setSelectedType] = useState('Tutti');
+
+  const matchTypes = ['Tutti', 'Calcio a 5', 'Calcio a 7', 'Calcio a 8', 'Calcio a 11'];
 
   useEffect(() => {
-    loadMatches();
-  }, [filters]);
+    loadDashboardData();
+  }, [currentUser]);
 
-  async function loadMatches() {
+  async function loadDashboardData() {
     try {
       setLoading(true);
-      const data = await api.getMatches(filters);
+      // 1. Carica i match (il backend ora restituisce postiOccupati dinamici)
+      const data = await api.getMatches();
       setMatches(data.matches || []);
+
+      // 2. Carica le prenotazioni dell'utente per il badge "Sei iscritto"
+      if (currentUser) {
+        const bookingsData = await api.getUserBookings(currentUser.uid);
+        const ids = bookingsData.bookings.map(b => b.matchId);
+        setUserMatchIds(ids);
+      }
     } catch (error) {
-      console.error('Error loading matches:', error);
+      console.error('Errore nel caricamento della dashboard:', error);
     } finally {
       setLoading(false);
     }
   }
 
-  // NUOVA FUNZIONE PER L'ELIMINAZIONE
-  async function handleDelete(e, matchId) {
-    e.stopPropagation(); // IMPORTANTE: evita che cliccando il cestino si apra il dettaglio
-    if (window.confirm("Sei sicuro di voler eliminare questa partita?")) {
-      try {
-        await api.deleteMatch(matchId);
-        // Ricarichiamo la lista o filtriamo lo stato locale
-        setMatches(prev => prev.filter(m => m.matchId !== matchId));
-      } catch (error) {
-        alert("Errore durante l'eliminazione della partita.");
-        console.error(error);
-      }
-    }
-  }
+  // Logica di filtraggio combinata (Ricerca + Tipologia)
+  const filteredMatches = matches.filter(match => {
+    const matchesSearch = 
+      match.luogo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      match.citta.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      match.indirizzo.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesType = selectedType === 'Tutti' || match.tipologia === selectedType;
+    
+    return matchesSearch && matchesType;
+  });
 
-  function handleFilterChange(field, value) {
-    setFilters({
-      ...filters,
-      [field]: value
-    });
-  }
-
-  function getAvailabilityClass(postiOccupati, postiTotali) {
-    const percentage = (postiOccupati / postiTotali) * 100;
-    if (percentage >= 100) return 'full';
-    if (percentage >= 75) return 'almost-full';
-    return 'available';
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="loader"></div>
+        <p>Caricamento partite in corso...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <h1>Partite Disponibili</h1>
-        <p>Trova e prenota la tua prossima partita di calcetto</p>
+    <div className="dashboard-container">
+      {/* Hero Section / Welcome */}
+      <div className="dashboard-welcome">
+        <h1>Ciao, {currentUser?.displayName || 'Giocatore'}! ⚽</h1>
+        <p>Trova la tua prossima sfida o scendi in campo con i tuoi amici.</p>
       </div>
 
-      {/* Sezione Filtri (Invariata) */}
-      <div className="filters">
-        <div className="filter-group">
-          <label>Tipologia</label>
-          <div className="filter-buttons">
-            {['', '5', '7', '8', '11'].map((t) => (
-              <button
-                key={t}
-                className={filters.tipologia === t ? 'active' : ''}
-                onClick={() => handleFilterChange('tipologia', t)}
-              >
-                {t === '' ? 'Tutte' : `Calcio a ${t}`}
-              </button>
-            ))}
-          </div>
+      {/* Sezione Filtri */}
+      <div className="filters-section">
+        <div className="search-wrapper">
+          <Search className="search-icon" size={20} />
+          <input 
+            type="text" 
+            placeholder="Cerca per città, via o nome campo..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
 
-        <div className="filter-inputs">
-          <div className="filter-input">
-            <label htmlFor="citta">Città</label>
-            <input
-              type="text"
-              id="citta"
-              placeholder="Es: Milano"
-              value={filters.citta}
-              onChange={(e) => handleFilterChange('citta', e.target.value)}
-            />
-          </div>
-          
-          <div className="filter-input">
-            <label htmlFor="provincia">Provincia</label>
-            <input
-              type="text"
-              id="provincia"
-              placeholder="Es: MI"
-              value={filters.provincia}
-              onChange={(e) => handleFilterChange('provincia', e.target.value)}
-            />
-          </div>
+        <div className="types-filter">
+          {matchTypes.map(type => (
+            <button 
+              key={type}
+              className={`type-btn ${selectedType === type ? 'active' : ''}`}
+              onClick={() => setSelectedType(type)}
+            >
+              {type}
+            </button>
+          ))}
         </div>
       </div>
 
+      {/* Lista Partite */}
       <div className="matches-grid">
-        {loading ? (
-          <div className="loading">Caricamento partite...</div>
-        ) : matches.length === 0 ? (
-          <div className="no-matches">
-            <p>Nessuna partita trovata con i filtri selezionati.</p>
-            <button onClick={() => navigate('/create-match')} className="btn-primary">
-              Crea una nuova partita
+        {filteredMatches.length > 0 ? (
+          filteredMatches.map(match => {
+            const isBooked = userMatchIds.includes(match.matchId);
+            const isFull = match.postiOccupati >= match.postiTotali;
+
+            return (
+              <div 
+                key={match.matchId} 
+                className={`match-card-new ${isBooked ? 'is-booked' : ''} ${isFull ? 'is-full' : ''}`}
+                onClick={() => navigate(`/match/${match.matchId}`)}
+              >
+                {/* Badge "Sei iscritto" */}
+                {isBooked && (
+                  <div className="my-match-tag">
+                    <Trophy size={14} />
+                    <span>Sei iscritto</span>
+                  </div>
+                )}
+
+                <div className="match-card-body">
+                  <div className="match-main-info">
+                    <span className={`match-type-label ${match.tipologia.replace(/\s+/g, '-').toLowerCase()}`}>
+                      {match.tipologia}
+                    </span>
+                    <h2 className="match-title">{match.luogo}</h2>
+                    <div className="match-location">
+                      <MapPin size={16} />
+                      <span>{match.indirizzo}, {match.citta}</span>
+                    </div>
+                  </div>
+
+                  <div className="match-stats-row">
+                    <div className="stat-item">
+                      <Calendar size={18} />
+                      <span>{match.data}</span>
+                    </div>
+                    <div className="stat-item">
+                      <Clock size={18} />
+                      <span>{match.ora}</span>
+                    </div>
+                    <div className="stat-item price">
+                      <Euro size={18} />
+                      <span>{match.prezzo}€</span>
+                    </div>
+                  </div>
+
+                  <div className="match-footer-new">
+                    <div className="occupancy-container">
+                      <div className="occupancy-bar">
+                        <div 
+                          className="occupancy-fill" 
+                          style={{ width: `${(match.postiOccupati / match.postiTotali) * 100}%` }}
+                        ></div>
+                      </div>
+                      <span className="occupancy-text">
+                        {match.postiOccupati} / {match.postiTotali} Giocatori
+                      </span>
+                    </div>
+                    
+                    <button className="btn-details-circle">
+                      <ChevronRight size={24} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="no-results">
+            <Filter size={48} />
+            <h3>Nessuna partita trovata</h3>
+            <p>Prova a cambiare i filtri o la zona di ricerca.</p>
+            <button onClick={() => {setSearchTerm(''); setSelectedType('Tutti');}} className="btn-reset">
+              Resetta filtri
             </button>
           </div>
-        ) : (
-          matches.map((match) => (
-            <div
-              key={match.matchId}
-              className="match-card"
-              onClick={() => navigate(`/match/${match.matchId}`)}
-            >
-              {/* IL BIDONCINO ROSSO */}
-              {currentUser?.uid === match.creatorId && (
-                <button 
-                  className="delete-btn-card" 
-                  onClick={(e) => handleDelete(e, match.matchId)}
-                  title="Elimina partita"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
-
-              <div className="match-card-header">
-                <span className="match-type">{match.tipologia}</span>
-                <span className={`availability-badge ${getAvailabilityClass(match.postiOccupati, match.postiTotali)}`}>
-                  {match.postiOccupati}/{match.postiTotali}
-                </span>
-              </div>
-
-              <div className="match-card-body">
-                <h3 className="match-place-name">{match.luogo}</h3>
-
-                <div className="match-info">
-                  <Calendar size={18} />
-                  <span>
-                    {format(new Date(match.data), 'EEEE d MMMM yyyy', { locale: it })} - {match.ora}
-                  </span>
-                </div>
-
-                <div className="match-info">
-                  <MapPin size={18} />
-                  <span>{match.citta}, {match.provincia}</span>
-                </div>
-
-                <div className="match-info">
-                  <Users size={18} />
-                  <span>{match.postiTotali - match.postiOccupati} posti disponibili</span>
-                </div>
-
-                <div className="match-info">
-                  <Euro size={18} />
-                  <span>€{match.prezzo} a persona</span>
-                </div>
-              </div>
-
-              <div className="match-card-footer">
-                <button className="btn-secondary">Vedi Dettagli</button>
-              </div>
-            </div>
-          ))
         )}
       </div>
     </div>

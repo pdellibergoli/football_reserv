@@ -230,3 +230,20 @@ margin-bottom: 20px;
     flex-direction: column;
     gap: 10px; /* Spazio tra "Tipologia" e i bottoni */
   }
+
+  .booked-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #2ecc71;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    z-index: 2;
+  }
+  
+  .match-card.booked {
+    border-left: 5px solid #2ecc71;
+  }
