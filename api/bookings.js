@@ -17,7 +17,6 @@ async function getAuthClient() {
   });
 }
 
-// Funzione corretta per MailerSend via Fetch
 async function sendPromotionEmail(userData, matchData) {
   const API_KEY = process.env.MAILERSEND_API_KEY;
   const EMAIL_FROM = process.env.EMAIL_FROM;
@@ -151,22 +150,18 @@ export default async function handler(req, res) {
       const matchId = deletedRow[1];
       const wasConfirmed = deletedRow[4] === 'confirmed';
 
-      // 1. Rimuovi la prenotazione (pulizia riga)
       await sheets.spreadsheets.values.clear({
         spreadsheetId: SPREADSHEET_ID,
         range: `Bookings!A${rowIndex + 1}:E${rowIndex + 1}`,
       });
 
-      // 2. Se chi ha cancellato era confermato, cerchiamo il primo "waiting"
       if (wasConfirmed) {
-        // Cerchiamo la riga "waiting" più vecchia per quel matchId
         const waitingIndex = rows.findIndex(r => r[1] === matchId && r[4] === 'waiting');
         console.log("Riga cancellata era confirmed, cerco waiting da promuovere. Waiting trovato a indice:", waitingIndex);
         if (waitingIndex !== -1) {
           const waitingUser = rows[waitingIndex];
           const waitingUserId = waitingUser[2];
 
-          // Promozione a confirmed
           await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
             range: `Bookings!E${waitingIndex + 1}`,
@@ -174,7 +169,6 @@ export default async function handler(req, res) {
             requestBody: { values: [['confirmed']] },
           });
 
-          // Recupera info Match e Utente per la mail
           const [usersRes, matchesRes] = await Promise.all([
             sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A:G' }),
             sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:K' })

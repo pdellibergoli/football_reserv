@@ -39,8 +39,8 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    display: block;  /* Necessario per far funzionare il margin auto */
-    margin: 20px auto 0; /* Centra orizzontalmente e aggiunge 20px di spazio sopra */
+    display: block;  
+    margin: 20px auto 0; 
     padding: 12px 30px;
   }
   

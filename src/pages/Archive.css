@@ -18,12 +18,12 @@
 .archive-card {
   background: white;
   border-radius: 16px;
-  padding: 24px 30px; /* Aumentato padding interno per dare respiro */
+  padding: 24px 30px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.05);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-left: 6px solid var(--primary); /* Bordo più spesso per bilanciare il design */
+  border-left: 6px solid var(--primary); 
   transition: transform 0.2s ease;
 }
 
@@ -31,12 +31,11 @@
   transform: scale(1.01);
 }
 
-/* CONTENUTO SINISTRA */
 .archive-card-content {
   display: flex;
   flex-direction: column;
-  align-items: flex-start; /* Allinea tutto a sinistra */
-  gap: 8px; /* Spazio uniforme tra i blocchi */
+  align-items: flex-start; 
+  gap: 8px; 
   flex: 1;
 }
 
@@ -49,13 +48,13 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 6px; /* Spazio extra critico per staccarlo dal titolo */
+  margin-bottom: 6px; 
   display: inline-block;
 }
 
 .match-main-info h3 {
   margin: 0;
-  font-size: 1.5rem; /* Titolo più grande e leggibile */
+  font-size: 1.5rem; 
   color: #1a1a1a;
   font-weight: 800;
   line-height: 1.2;
@@ -63,7 +62,7 @@
 
 .match-meta {
   display: flex;
-  gap: 20px; /* Più spazio tra data e città */
+  gap: 20px; 
   color: #718096;
   font-size: 0.95rem;
   margin-top: 4px;
@@ -76,10 +75,9 @@
 }
 
 .match-meta svg {
-  color: var(--primary); /* Icone colorate come il tema per coerenza */
+  color: var(--primary); 
 }
 
-/* AZIONI DESTRA */
 .archive-actions {
   display: flex;
   gap: 15px;

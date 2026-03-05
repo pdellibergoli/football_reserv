@@ -13,7 +13,6 @@ export default function CreateMatch() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // Stati per la ricerca indirizzo
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -32,7 +31,6 @@ export default function CreateMatch() {
     lng: ''
   });
 
-  // 1. Effetto per caricare i dati se siamo in modalità Modifica
   useEffect(() => {
     if (isEditMode) {
       const loadMatchData = async () => {
@@ -65,10 +63,8 @@ export default function CreateMatch() {
     }
   }, [id, isEditMode]);
 
-  // 2. Debounce per la ricerca indirizzo
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      // Non cerchiamo se l'indirizzo è già quello salvato nel form (evita loop in modifica)
       if (searchQuery.trim().length >= 3 && searchQuery !== formData.indirizzo) {
         performSearch(searchQuery);
       } else {
@@ -80,18 +76,16 @@ export default function CreateMatch() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, formData.indirizzo]);
 
-  // 3. Logica automatica posti totali (attiva solo se cambiamo tipologia)
   useEffect(() => {
     const mapping = { 'Calcio a 5': 10, 'Calcio a 7': 14, 'Calcio a 8': 16, 'Calcio a 11': 22 };
     setFormData(prev => ({ ...prev, maxPartecipanti: mapping[prev.tipologia] || 10 }));
   }, [formData.tipologia]);
 
   const performSearch = async (query) => {
-    if (query.length < 4) return; // Aspetta qualche carattere in più per precisione
+    if (query.length < 4) return;
     setIsSearching(true);
     
     try {
-      // Usiamo il World Geocoding Service di ArcGIS (molto preciso sui civici italiani)
       const response = await fetch(
         `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(query)}&maxLocations=5&outFields=Addr_type,City,PlaceName,Region&countryCode=ITA`
       );
@@ -147,11 +141,9 @@ export default function CreateMatch() {
       };
 
       if (isEditMode) {
-        // Chiamata PUT per la modifica
         await api.updateMatch(id, matchData);
         navigate(`/match/${id}`);
       } else {
-        // Chiamata POST per la creazione
         matchData.partecipanti = JSON.stringify([]);
         matchData.stato = 'aperta';
         matchData.createdAt = new Date().toISOString();

@@ -5,119 +5,118 @@
   }
   
 .profile-header {
-margin-bottom: 32px;
+  margin-bottom: 32px;
 }
 
 .profile-header h1 {
-font-size: 32px;
+  font-size: 32px;
 }
 
 .message {
-padding: 16px;
-border-radius: 8px;
-margin-bottom: 24px;
-text-align: center;
-font-weight: 600;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  text-align: center;
+  font-weight: 600;
 }
 
 .message-success {
-background: #d1fae5;
-color: #065f46;
+  background: #d1fae5;
+  color: #065f46;
 }
 
 .message-error {
-background: #fee2e2;
-color: #991b1b;
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .profile-grid {
-display: grid;
-gap: 24px;
+  display: grid;
+  gap: 24px;
 }
 
 .profile-card {
-background: white;
-border-radius: 12px;
-padding: 24px;
-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
 }
 
 .card-header h2 {
-font-size: 24px;
+  font-size: 24px;
 }
 
 .profile-info {
-display: flex;
-flex-direction: column;
-gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .info-row {
-display: flex;
-justify-content: space-between;
-padding: 12px 0;
-border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .info-row:last-child {
-border-bottom: none;
+  border-bottom: none;
 }
 
 .info-label {
-font-weight: 600;
-color: var(--gray-700);
+  font-weight: 600;
+  color: var(--gray-700);
 }
 
 .profile-form {
-display: flex;
-flex-direction: column;
-gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .stats-grid {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
 }
 
 .stat-item {
-display: flex;
-align-items: center;
-gap: 16px;
-padding: 20px;
-background: var(--gray-50);
-border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--gray-50);
+  border-radius: 8px;
 }
 
 .stat-icon {
-color: var(--primary);
+  color: var(--primary);
 }
 
 .stat-value {
-font-size: 28px;
-font-weight: 700;
-color: var(--primary);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
 }
 
 .stat-label {
-font-size: 14px;
-color: var(--gray-600);
+  font-size: 14px;
+  color: var(--gray-600);
 }
 
 @media (max-width: 768px) {
 .stats-grid {
-    grid-template-columns: 1fr;
+  grid-template-columns: 1fr;
 }
 }
 
-/* Rendi il box statistiche cliccabile */
 .stat-item.clickable {
   cursor: pointer;
   transition: background 0.2s;
@@ -127,7 +126,6 @@ color: var(--gray-600);
   border-radius: 8px;
 }
 
-/* Overlay della Modale */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -142,7 +140,6 @@ color: var(--gray-600);
   backdrop-filter: blur(3px);
 }
 
-/* Contenuto della Modale */
 .modal-content {
   background: white;
   width: 90%;
@@ -178,7 +175,6 @@ color: var(--gray-600);
   gap: 15px;
 }
 
-/* Riutilizziamo gli stili del rating-item definiti prima */
 .rating-item {
   padding: 12px;
   background: #f9f9f9;

@@ -9,7 +9,6 @@ import {
   ChevronDown, ChevronUp, CheckCircle, Trash2, Edit, Clock8 
 } from 'lucide-react';
 
-// FIX ICONE LEAFLET
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -35,10 +34,8 @@ export default function MatchDetail() {
   const [loading, setLoading] = useState(true);
   const [showParticipants, setShowParticipants] = useState(false);
 
-  // Definizione della funzione loadData all'interno del componente per poterla riutilizzare
   async function loadData() {
     try {
-      // Non resettiamo il loading se la funzione è chiamata dopo una prenotazione per evitare flickers
       const data = await api.getMatch(id);
       
       if (data.match) {
@@ -61,7 +58,6 @@ export default function MatchDetail() {
     }
   }
 
-  // useEffect ottimizzato per evitare chiamate infinite
   useEffect(() => {
     let isMounted = true;
 
@@ -115,7 +111,6 @@ export default function MatchDetail() {
         alert('Prenotazione confermata con successo!');
       }
       
-      // Ricarica i dati per aggiornare lo stato locale
       await loadData();
     } catch (error) {
       console.error('Errore durante la prenotazione:', error);
@@ -127,7 +122,6 @@ export default function MatchDetail() {
     if (!confirm('Vuoi davvero cancellare la tua prenotazione?')) return;
     try {
       await api.deleteBooking(userBooking.bookingId);
-      // Ricarica i dati per aggiornare lo stato locale e vedere se qualcun altro è stato promosso
       await loadData();
     } catch (error) {
       console.error('Errore durante la cancellazione:', error);
@@ -152,7 +146,6 @@ export default function MatchDetail() {
   const isFull = match.postiOccupati >= match.postiTotali;
   const isOwner = currentUser?.uid === match.creatorId;
 
-  // Filtriamo i partecipanti per visualizzarli nelle liste corrette
   const confirmedPlayers = participants.filter(p => !p.status || p.status === 'confirmed');
   const waitingPlayers = participants.filter(p => p.status === 'waiting');
 
@@ -174,7 +167,6 @@ export default function MatchDetail() {
       </div>
 
       <div className="match-detail-grid">
-        {/* COLONNA SINISTRA: INFO E PARTECIPANTI */}
         <div className="match-info-section">
           <div className="info-card">
             <h3>Dettagli Partita</h3>
@@ -212,7 +204,6 @@ export default function MatchDetail() {
               </div>
             </div>
 
-            {/* LISTA GIOCATORI ESPANDIBILE */}
             <div className="participants-collapsible">
               <div className="participants-trigger" onClick={() => setShowParticipants(!showParticipants)}>
                 <div className="trigger-label">
@@ -263,7 +254,6 @@ export default function MatchDetail() {
             </div>
           </div>
 
-          {/* AZIONI ADMIN */}
           {isOwner && (
             <div className="owner-actions-bottom">
               <button onClick={() => navigate(`/edit-match/${id}`)} className="btn-edit-match">
@@ -275,7 +265,6 @@ export default function MatchDetail() {
             </div>
           )}
 
-          {/* AZIONI PRENOTAZIONE */}
           <div className="booking-actions">
             {userBooking ? (
               <div className={`booking-confirmation-box ${userBooking.status}`}>
@@ -314,7 +303,6 @@ export default function MatchDetail() {
           </div>
         </div>
 
-        {/* COLONNA DESTRA: MAPPA */}
         <div className="map-section">
           <div className="map-header">
             <h3>Posizione Campo</h3>

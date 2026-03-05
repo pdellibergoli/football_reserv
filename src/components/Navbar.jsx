@@ -34,7 +34,6 @@ export default function Navbar() {
             <span>Crea Partita</span>
           </Link>
 
-          {/* NUOVO LINK ARCHIVIO */}
           <Link to="/archive" className="navbar-link">
             <History size={20} />
             <span>Archivio</span>

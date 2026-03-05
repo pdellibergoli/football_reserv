@@ -18,7 +18,6 @@ async function getAuthClient() {
 }
 
 export default async function handler(req, res) {
-  // Abilita CORS per le chiamate dal frontend
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -31,15 +30,12 @@ export default async function handler(req, res) {
     const auth = await getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // Recupera l'ID utente dai parametri (es: /api/users?userId=123) 
-    // o dal percorso se Vercel lo passa così
     const userId = req.query.userId || req.query.params?.[0];
 
-    // GET /api/users/[userId] - Recupera profilo
     if (req.method === 'GET' && userId) {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A:H`, // Legge da colonna A a H
+        range: `${SHEET_NAME}!A:H`, 
       });
     
       const rows = response.data.values || [];
@@ -62,16 +58,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // POST /api/users - Crea nuovo profilo (usato in Signup)
     if (req.method === 'POST') {
-      console.log("Dati ricevuti nel backend:", req.body); // DEBUG 1
+      console.log("Dati ricevuti nel backend:", req.body);
       const { userId, email, nome, cognome, dataNascita, sesso, ruolo, createdAt } = req.body;
     
       try {
         const auth = await getAuthClient();
         const sheets = google.sheets({ version: 'v4', auth });
         
-        console.log("Autenticazione Google riuscita, provo a scrivere..."); // DEBUG 2
+        console.log("Autenticazione Google riuscita, provo a scrivere...");
     
         const result = await sheets.spreadsheets.values.append({
           spreadsheetId: SPREADSHEET_ID,
@@ -82,15 +77,14 @@ export default async function handler(req, res) {
           }
         });
     
-        console.log("Scrittura completata con successo!"); // DEBUG 3
+        console.log("Scrittura completata con successo!"); 
         return res.status(201).json({ success: true, userId });
       } catch (err) {
-        console.error("ERRORE DURANTE LA SCRITTURA:", err.message); // DEBUG 4
+        console.error("ERRORE DURANTE LA SCRITTURA:", err.message); 
         return res.status(500).json({ error: err.message });
       }
     }
 
-    // PUT /api/users/[userId] - Aggiorna profilo
     if (req.method === 'PUT' && userId) {
       const { nome, cognome, dataNascita, sesso, ruolo } = req.body;
 

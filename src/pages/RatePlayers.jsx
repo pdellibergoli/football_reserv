@@ -18,7 +18,6 @@ export default function RatePlayers() {
     async function loadData() {
       try {
         setLoading(true);
-        // Carichiamo partecipanti e voti già esistenti per questo match
         const [pRes, rRes] = await Promise.all([
           api.getMatchParticipants(matchId),
           api.getMatchRatings(matchId)
@@ -32,7 +31,6 @@ export default function RatePlayers() {
 
         const initialStatus = {};
         others.forEach(p => {
-          // Vediamo se ho già votato questo giocatore in questo match
           const prev = existingRatings.find(r => r.fromUserId === currentUser.uid && r.toUserId === p.userId);
           
           initialStatus[p.userId] = {
@@ -79,7 +77,6 @@ export default function RatePlayers() {
         } else {
           await api.createRating(payload);
         }
-        // Piccolo delay per evitare congestione API
         await new Promise(r => setTimeout(r, 100));
       }
 

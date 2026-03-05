@@ -18,7 +18,6 @@ async function getAuthClient() {
 }
 
 export default async function handler(req, res) {
-  // Configurazione CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -29,10 +28,7 @@ export default async function handler(req, res) {
     const auth = await getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // --- GET: RECUPERO PARTITE ---
     if (req.method === 'GET') {
-      // Recuperiamo sia i match che le prenotazioni per il conteggio dinamico
-      // Estendiamo il range a E per leggere lo 'status' della prenotazione
       const [matchesRes, bookingsRes] = await Promise.all([
         sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:O' }),
         sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Bookings!A:E' })
@@ -44,13 +40,9 @@ export default async function handler(req, res) {
       const includePast = req.query.includePast === 'true';
       const adesso = new Date();
 
-      // Trasformiamo i dati in oggetti
       const allMatches = rows.slice(1).map(row => {
         const mId = row[0];
         
-        // --- MODIFICA FONDAMENTALE ---
-        // Contiamo solo le prenotazioni per questo matchId che hanno status 'confirmed'
-        // Se la colonna status (b[4]) è vuota, la consideriamo 'confirmed' per i vecchi dati
         const realOccupied = bookingRows.filter(b => 
           b[1] === mId && (b[4] === 'confirmed' || !b[4])
         ).length;
@@ -69,7 +61,7 @@ export default async function handler(req, res) {
           tipologia: row[10],
           prezzo: parseFloat(row[11]),
           postiTotali: parseInt(row[12]),
-          postiOccupati: realOccupied, // Mostra solo i confermati
+          postiOccupati: realOccupied,
           status: row[14] || 'active'
         };
       });
@@ -78,10 +70,9 @@ export default async function handler(req, res) {
         const singleMatch = allMatches.find(m => m.matchId === req.query.matchId);
         if (!singleMatch) return res.status(404).json({ error: 'Match non trovato' });
         
-        // Recupera gli utenti per il join
         const usersRes = await sheets.spreadsheets.values.get({ 
           spreadsheetId: SPREADSHEET_ID, 
-          range: 'Users!A:G' // Assicurati che arrivi almeno alla colonna D (cognome)
+          range: 'Users!A:G' 
         });
         const userRows = usersRes.data.values || [];
 
@@ -102,7 +93,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ match: singleMatch, participants: matchParticipants });
       }
 
-      // Filtraggio per Dashboard vs Archivio
       let filtered = allMatches.filter(m => {
         if (m.status === 'cancelled') return false;
         const dataPartita = new Date(`${m.data}T${m.ora}`);
@@ -123,7 +113,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ matches: filtered });
     }
 
-    // --- POST: CREAZIONE NUOVO MATCH ---
     if (req.method === 'POST') {
       const matchId = uuidv4();
       const { organizzatoreId, citta, provincia, luogo, indirizzo, lat, lng, data, ora, tipologia, prezzo, maxPartecipanti } = req.body;
@@ -142,7 +131,6 @@ export default async function handler(req, res) {
       return res.status(201).json({ success: true, matchId });
     }
 
-    // --- PUT: MODIFICA MATCH ---
     if (req.method === 'PUT') {
       const { matchId } = req.query;
       const { organizzatoreId, citta, provincia, luogo, indirizzo, lat, lng, data, ora, tipologia, prezzo, maxPartecipanti } = req.body;
@@ -156,7 +144,7 @@ export default async function handler(req, res) {
       const updatedValues = [
         matchId, organizzatoreId, citta, provincia, luogo, indirizzo, 
         `'${lat}`, `'${lng}`, data, ora, tipologia, prezzo, maxPartecipanti, 
-        rows[rowIndex][13], // Manteniamo i posti occupati originali (anche se il conteggio è dinamico in GET)
+        rows[rowIndex][13],
         rows[rowIndex][14] || 'active'
       ];
 
@@ -169,7 +157,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // --- DELETE: CANCELLAZIONE (SOFT DELETE) ---
     if (req.method === 'DELETE') {
       const { matchId } = req.query;
       const getRows = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:O' });
@@ -178,7 +165,6 @@ export default async function handler(req, res) {
 
       if (rowIndex === -1) return res.status(404).json({ error: 'Match non trovato' });
 
-      // Invece di eliminare la riga, cambiamo lo status in 'cancelled'
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
         range: `Matches!O${rowIndex + 1}`,

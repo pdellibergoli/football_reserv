@@ -34,17 +34,13 @@ export default function Profile() {
     }
   };
 
-  // Effetto per caricare i dati e sincronizzare il form
   useEffect(() => {
     async function getProfileData() {
-      // Se l'utente è loggato ma il profilo nel context è vuoto, forziamo la chiamata API
       if (currentUser && !userProfile) {
         setLoading(true);
         try {
           console.log("Recupero dati profilo per UID:", currentUser.uid);
-          // Questa chiamata apparirà ora nel tab Network
           const data = await api.getUser(currentUser.uid);
-          // Una volta ricevuti i dati, popoliamo il form localmente
           if (data) {
             setFormData({
               nome: data.nome || '',
@@ -61,7 +57,6 @@ export default function Profile() {
         }
       }
 
-      // Se il profilo è già nel contesto, popoliamo il form e carichiamo i ratings
       if (userProfile) {
         setFormData({
           nome: userProfile.nome || '',
@@ -239,7 +234,6 @@ export default function Profile() {
           )}
         </div>
 
-        {/* Altre Card: Sicurezza e Statistiche restano invariate */}
         <div className="profile-card">
           <div className="card-header"><h2>Sicurezza</h2></div>
           {!changingPassword ? (
@@ -273,7 +267,6 @@ export default function Profile() {
               </div>
             </div>
             
-            {/* Box Cliccabile per aprire la modale */}
             <div className="stat-item clickable" onClick={() => setIsModalOpen(true)}>
               <div className="stat-value">{userRatings.length}</div>
               <div className="stat-label">Recensioni Ricevute (Vedi)</div>

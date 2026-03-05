@@ -132,7 +132,6 @@ export const api = {
   },
 
   async submitRating(ratingData) {
-    // Gestisce sia creazione che aggiornamento se ratingId è presente
     if (ratingData.ratingId) {
       return this.updateRating(ratingData.ratingId, ratingData);
     }

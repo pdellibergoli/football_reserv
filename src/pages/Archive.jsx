@@ -16,21 +16,17 @@ export default function Archive() {
       if (!currentUser) return;
       try {
         setLoading(true);
-        // 1. Prendiamo le prenotazioni dell'utente
         const resBookings = await api.getUserBookings(currentUser.uid);
         const myMatchIds = (resBookings.bookings || []).map(b => b.matchId);
         
         console.log("I miei Match IDs prenotati:", myMatchIds);
 
-        // 2. Chiamiamo i match forzando il parametro includePast
         const resMatches = await api.getMatches({ includePast: 'true' });
         console.log("Tutti i match ricevuti dal server:", resMatches.matches);
 
         const now = new Date();
 
         const archived = resMatches.matches.filter(m => {
-          // Creiamo la data senza forzare il formato T che a volte dà problemi con i fusi orari locali
-          // Se m.data è YYYY-MM-DD e m.ora è HH:mm
           const [year, month, day] = m.data.split('-');
           const [hours, minutes] = m.ora.split(':');
           const dataPartita = new Date(year, month - 1, day, hours, minutes);
@@ -43,7 +39,6 @@ export default function Archive() {
 
         console.log("Match filtrati per l'archivio:", archived);
 
-        // Ordiniamo dalla più recente alla più vecchia
         archived.sort((a, b) => new Date(`${b.data}T${b.ora}`) - new Date(`${a.data}T${a.ora}`));
         
         setPastMatches(archived);

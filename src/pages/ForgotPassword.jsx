@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../services/api';
 import { Link } from 'react-router-dom';
-import './Auth.css'; // Usiamo lo stesso stile del Login
+import './Auth.css';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');

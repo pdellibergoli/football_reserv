@@ -30,8 +30,6 @@ export function AuthProvider({ children }) {
     };
   
     await api.createUser(newProfile);
-    
-    // Aggiorna manualmente lo stato così il profilo è subito pronto
     setUserProfile(newProfile);
     
     return user;

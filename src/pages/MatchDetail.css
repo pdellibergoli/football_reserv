@@ -24,7 +24,7 @@ text-decoration: underline;
 }
 
 .match-detail-header h1 {
-font-size: 32px;
+font-size: 25px;
 margin-bottom: 12px;
 }
 
@@ -458,6 +458,7 @@ margin-top: 8px;
   font-weight: 600;
   display: inline-block;
   margin-left: 10px;
+  margin-right: 10px;
 }
 
 .booking-confirmation-box {
@@ -472,4 +473,19 @@ margin-top: 8px;
   color: #27ae60;
   font-weight: bold;
   margin-bottom: 10px;
+}
+
+.status-confirmed-badge.waiting {
+  background-color: #fff3e0; /* Arancione chiaro */
+  color: #ef6c00;            /* Arancione scuro */
+  border: 1px solid #ffe0b2;
+  margin-right: 10px;        /* Distanza dal bordo destro */
+}
+
+/* Stile per il badge "Iscritto" */
+.status-confirmed-badge.confirmed {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+  margin-right: 10px;
 }

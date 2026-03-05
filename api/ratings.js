@@ -21,7 +21,6 @@ export default async function handler(req, res) {
   const auth = await getAuthClient();
   const sheets = google.sheets({ version: 'v4', auth });
 
-  // GET: Recupera voti (per matchId o per userId)
   if (req.method === 'GET') {
     const { matchId, userId } = req.query;
     try {
@@ -44,7 +43,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST: Nuovo voto
   if (req.method === 'POST') {
     const { matchId, fromUserId, toUserId, stars, comment } = req.body;
     try {
@@ -62,7 +60,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // PUT: Aggiorna voto esistente
   if (req.method === 'PUT') {
     const { ratingId } = req.query;
     const { stars, comment } = req.body;
@@ -78,7 +75,7 @@ export default async function handler(req, res) {
 
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
-        range: `Ratings!E${rowIndex + 1}:F${rowIndex + 1}`, // Colonne E (Stars) e F (Comment)
+        range: `Ratings!E${rowIndex + 1}:F${rowIndex + 1}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [[stars, comment]] }
       });
