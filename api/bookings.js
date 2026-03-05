@@ -29,11 +29,11 @@ async function sendPromotionEmail(userData, matchData) {
     from: { email: EMAIL_FROM, name: "Football Reserv" },
     to: [{ email: userData.email, name: `${userData.nome} ${userData.cognome}` }],
     subject: `⚽ Posto liberato! Sei in squadra per la partita a ${matchData.luogo}`,
-    text: `Ciao ${userData.nome}, si è liberato un posto per la partita a ${matchData.luogo}! Sei stato promosso tra i partecipanti confermati. Link: ${APP_URL}/match/${matchData.matchId}`,
+    text: `Ciao ${userData.nome}, si è liberato un posto per la partita presso ${matchData.luogo}! Sei stato promosso tra i partecipanti confermati. Link: ${APP_URL}/match/${matchData.matchId}`,
     html: `
       <div style="font-family: sans-serif; color: #333;">
         <h2>Ciao ${userData.nome}, buone notizie!</h2>
-        <p>Si è liberato un posto per la partita a <strong>${matchData.luogo}</strong>.</p>
+        <p>Si è liberato un posto per la partita presso <strong>${matchData.luogo}</strong>.</p>
         <p>Il tuo stato è stato aggiornato: ora sei tra i <strong>partecipanti confermati</strong>.</p>
         <hr />
         <p><strong>Dettagli:</strong></p>
@@ -43,7 +43,7 @@ async function sendPromotionEmail(userData, matchData) {
           <li>Luogo: ${matchData.indirizzo}</li>
         </ul>
         <a href="${APP_URL}/match/${matchData.matchId}" 
-           style="background: #2ecc71; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+           style="background: #ff0037; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
            Vedi Dettagli Partita
         </a>
       </div>
