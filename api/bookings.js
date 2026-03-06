@@ -21,7 +21,10 @@ async function sendPromotionEmail(userData, matchData) {
   const API_KEY = process.env.MAILERSEND_API_KEY;
   const EMAIL_FROM = process.env.EMAIL_FROM;
   const APP_URL = process.env.APP_URL || 'https://football-reserv.vercel.app';
-
+  const dateParts = matchData.data.split('-');
+  const formattedDate = dateParts.length === 3 
+    ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` 
+    : matchData.data;
   console.log("Tentativo invio email a:", userData.email);
 
   const emailBody = {
@@ -37,7 +40,7 @@ async function sendPromotionEmail(userData, matchData) {
         <hr />
         <p><strong>Dettagli:</strong></p>
         <ul>
-          <li>Data: ${matchData.data}</li>
+          <li>Data: ${formattedDate}</li>
           <li>Ora: ${matchData.ora}</li>
           <li>Luogo: ${matchData.indirizzo}</li>
         </ul>
@@ -82,28 +85,58 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
 
     if (req.method === 'GET') {
+      const { matchId, userId, type } = req.query;
+      
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: 'Bookings!A:E',
       });
       const rows = response.data.values || [];
-      const bookings = rows.slice(1).map(row => ({
+      
+      if (matchId && type === 'participants') {
+        const usersRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: 'Users!A:G', 
+        });
+        const userRows = usersRes.data.values || [];
+
+        const participants = rows
+          .filter(row => row[1] === matchId && row[4] === 'confirmed')
+          .map(row => {
+            const user = userRows.find(u => u[0] === row[2]);
+            return {
+              bookingId: row[0],
+              userId: row[2],
+              nome: user ? user[2] : 'Utente',
+              cognome: user ? user[3] : 'Sconosciuto',
+              ruolo: user ? user[6] : 'Giocatore'
+            };
+          });
+
+        return res.status(200).json({ participants });
+      }
+
+      if (userId) {
+        const userBookings = rows.slice(1)
+          .filter(row => row[2] === userId)
+          .map(row => ({
+            bookingId: row[0],
+            matchId: row[1],
+            userId: row[2],
+            createdAt: row[3],
+            status: row[4] || 'confirmed'
+          }));
+        return res.status(200).json({ bookings: userBookings });
+      }
+
+      const allBookings = rows.slice(1).map(row => ({
         bookingId: row[0],
         matchId: row[1],
         userId: row[2],
         createdAt: row[3],
         status: row[4] || 'confirmed'
       }));
-
-      if (req.query.matchId) {
-        const filtered = bookings.filter(b => b.matchId === req.query.matchId);
-        return res.status(200).json({ bookings: filtered });
-      }
-      if (req.query.userId) {
-        const filtered = bookings.filter(b => b.userId === req.query.userId);
-        return res.status(200).json({ bookings: filtered });
-      }
-      return res.status(200).json({ bookings });
+      return res.status(200).json({ bookings: allBookings });
     }
 
     if (req.method === 'POST') {

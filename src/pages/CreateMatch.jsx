@@ -5,7 +5,7 @@ import { api } from '../services/api';
 import './CreateMatch.css';
 
 export default function CreateMatch() {
-  const { id } = useParams(); // Se l'ID è presente nell'URL, siamo in Modifica
+  const { id } = useParams();
   const isEditMode = Boolean(id);
   
   const { currentUser } = useAuth();
@@ -134,23 +134,22 @@ export default function CreateMatch() {
       setLoading(true);
       setError('');
       
-      const matchData = {
-        ...formData,
-        organizzatoreId: currentUser.uid,
-        organizzatoreEmail: currentUser.email
-      };
-
       if (isEditMode) {
-        await api.updateMatch(id, matchData);
+        await api.updateMatch(id, formData);
         navigate(`/match/${id}`);
       } else {
-        matchData.partecipanti = JSON.stringify([]);
-        matchData.stato = 'aperta';
-        matchData.createdAt = new Date().toISOString();
-        await api.createMatch(matchData);
+        const newMatchData = {
+          ...formData,
+          organizzatoreId: currentUser.uid,
+          organizzatoreEmail: currentUser.email,
+          stato: 'active',
+          createdAt: new Date().toISOString()
+        };
+        await api.createMatch(newMatchData);
         navigate('/');
       }
     } catch (err) {
+      console.error("Errore salvataggio:", err);
       setError(`Errore durante ${isEditMode ? 'l\'aggiornamento' : 'la creazione'}.`);
     } finally {
       setLoading(false);

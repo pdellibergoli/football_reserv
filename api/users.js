@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET' && userId) {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A:H`, 
+        range: `${SHEET_NAME}!A:I`, 
       });
     
       const rows = response.data.values || [];
@@ -45,39 +45,33 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Utente non trovato' });
       }
     
-      // Mappatura corretta basata sulle colonne dello Sheet
       return res.status(200).json({
-        userId: user[0],      // Colonna A
-        email: user[1],       // Colonna B
-        nome: user[2],        // Colonna C
-        cognome: user[3],     // Colonna D
-        dataNascita: user[4], // Colonna E
-        sesso: user[5],       // Colonna F
-        ruolo: user[6],       // Colonna G
-        createdAt: user[7]    // Colonna H
+        userId: user[0],      
+        email: user[1],       
+        nome: user[2],        
+        cognome: user[3],     
+        dataNascita: user[4], 
+        sesso: user[5],       
+        ruolo: user[6],       
+        createdAt: user[7],
+        isAdmin: user[8] === 'TRUE'
       });
     }
 
     if (req.method === 'POST') {
-      console.log("Dati ricevuti nel backend:", req.body);
       const { userId, email, nome, cognome, dataNascita, sesso, ruolo, createdAt } = req.body;
+      const isAdmin = 'false';
     
       try {
-        const auth = await getAuthClient();
-        const sheets = google.sheets({ version: 'v4', auth });
-        
-        console.log("Autenticazione Google riuscita, provo a scrivere...");
-    
-        const result = await sheets.spreadsheets.values.append({
+        await sheets.spreadsheets.values.append({
           spreadsheetId: SPREADSHEET_ID,
           range: `${SHEET_NAME}!A:I`,
           valueInputOption: 'USER_ENTERED',
           requestBody: {
-            values: [[userId, email, nome, cognome, dataNascita, sesso, ruolo, createdAt]]
+            values: [[userId, email, nome, cognome, dataNascita, sesso, ruolo, createdAt, isAdmin]]
           }
         });
     
-        console.log("Scrittura completata con successo!"); 
         return res.status(201).json({ success: true, userId });
       } catch (err) {
         console.error("ERRORE DURANTE LA SCRITTURA:", err.message); 
@@ -116,14 +110,13 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(405).json({ error: `Metodo ${req.method} non supportato su questa rotta` });
+    return res.status(405).json({ error: `Metodo ${req.method} non supportato` });
 
   } catch (error) {
     console.error('Errore API Users:', error);
     return res.status(500).json({ 
       error: 'Errore interno del server', 
-      message: error.message,
-      details: error.response?.data || 'Nessun dettaglio aggiuntivo'
+      message: error.message
     });
   }
 }

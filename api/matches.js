@@ -133,19 +133,37 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
       const { matchId } = req.query;
-      const { organizzatoreId, citta, provincia, luogo, indirizzo, lat, lng, data, ora, tipologia, prezzo, maxPartecipanti } = req.body;
+      const data = req.body;
 
-      const getRows = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:O' });
+      const getRows = await sheets.spreadsheets.values.get({ 
+        spreadsheetId: SPREADSHEET_ID, 
+        range: 'Matches!A:O' 
+      });
       const rows = getRows.data.values || [];
       const rowIndex = rows.findIndex(r => r[0] === matchId);
 
       if (rowIndex === -1) return res.status(404).json({ error: 'Partita non trovata' });
 
+      const originalCreatorId = rows[rowIndex][1]; 
+      const currentOccupied = rows[rowIndex][13];  
+      const currentStatus = rows[rowIndex][14];
+
       const updatedValues = [
-        matchId, organizzatoreId, citta, provincia, luogo, indirizzo, 
-        `'${lat}`, `'${lng}`, data, ora, tipologia, prezzo, maxPartecipanti, 
-        rows[rowIndex][13],
-        rows[rowIndex][14] || 'active'
+        matchId,                                    
+        originalCreatorId,                           
+        data.citta || rows[rowIndex][2],            
+        data.provincia || rows[rowIndex][3],         
+        data.luogo || rows[rowIndex][4],             
+        data.indirizzo || rows[rowIndex][5],         
+        data.lat !== undefined ? `'${data.lat}` : rows[rowIndex][6], 
+        data.lng !== undefined ? `'${data.lng}` : rows[rowIndex][7], 
+        data.data || rows[rowIndex][8],              
+        data.ora || rows[rowIndex][9],               
+        data.tipologia || rows[rowIndex][10],        
+        data.prezzo !== undefined ? data.prezzo : rows[rowIndex][11], 
+        data.maxPartecipanti || rows[rowIndex][12],  
+        currentOccupied,                             
+        currentStatus || 'active'                    
       ];
 
       await sheets.spreadsheets.values.update({
@@ -154,6 +172,7 @@ export default async function handler(req, res) {
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [updatedValues] }
       });
+
       return res.status(200).json({ success: true });
     }
 
