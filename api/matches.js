@@ -1,7 +1,13 @@
 import { google } from 'googleapis';
 import { v4 as uuidv4 } from 'uuid';
+import nodemailer from 'nodemailer';
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID;
+const API_KEY = process.env.MAILERSEND_API_KEY;
+const EMAIL_FROM = process.env.EMAIL_FROM;
+const APP_URL = process.env.APP_URL || 'https://football-reserv.vercel.app';
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_APP_PASS = process.env.GMAIL_APP_PASS;
 
 async function getAuthClient() {
   return new google.auth.GoogleAuth({
@@ -115,20 +121,88 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const matchId = uuidv4();
-      const { organizzatoreId, citta, provincia, luogo, indirizzo, lat, lng, data, ora, tipologia, prezzo, maxPartecipanti } = req.body;
+      const { 
+        organizzatoreId, citta, provincia, luogo, indirizzo, 
+        lat, lng, data, ora, tipologia, prezzo, maxPartecipanti 
+      } = req.body;
       
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: SPREADSHEET_ID,
-        range: 'Matches!A:O',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [[
-            matchId, organizzatoreId, citta, provincia, luogo, indirizzo, 
-            `'${lat}`, `'${lng}`, data, ora, tipologia, prezzo, maxPartecipanti, 0, 'active'
-          ]]
+      try {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: SPREADSHEET_ID,
+          range: 'Matches!A:O',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[
+              matchId, organizzatoreId, citta, provincia, luogo, indirizzo, 
+              `'${lat}`, `'${lng}`, data, ora, tipologia, prezzo, maxPartecipanti, 0, 'active'
+            ]]
+          }
+        });
+
+        try {
+          console.log("Inizio recupero utenti per invio notifiche tramite Gmail...");
+          
+          const usersRes = await sheets.spreadsheets.values.get({ 
+            spreadsheetId: SPREADSHEET_ID, 
+            range: 'Users!A:I' 
+          });
+          const userRows = usersRes.data.values || [];
+          
+          const allEmails = userRows
+            .slice(1) 
+            .map(row => row[1])
+            .filter(email => email && email.includes('@'));
+
+          if (allEmails.length > 0) {
+            const transporter = nodemailer.createTransport({
+              service: 'gmail',
+              auth: {
+                user: GMAIL_USER,
+                pass: GMAIL_APP_PASS 
+              }
+            });
+
+            console.log(`Inviando ${allEmails.length} email in parallelo...`);
+
+            const emailPromises = allEmails.map(recipientEmail => {
+              const mailOptions = {
+                from: `"Football Reserv"`,
+                to: recipientEmail,
+                subject: `⚽ Nuova Partita: ${tipologia} a ${citta}!`,
+                html: `
+                  <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+                    <h2 style="color: #ff0033;">Nuova Partita Disponibile!</h2>
+                    <p>Ciao! Una nuova partita di <strong>${tipologia}</strong> è stata appena creata.</p>
+                    <div style="background: #f9f9f9; padding: 15px; border-radius: 8px;">
+                      <p>📍 <strong>Dove:</strong> ${luogo} (${citta})</p>
+                      <p>📅 <strong>Quando:</strong> ${data} alle ore ${ora}</p>
+                    </div>
+                    <p style="text-align: center; margin-top: 20px;">
+                      <a href="${APP_URL}/matches/${matchId}" style="background: #ff0033; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Partecipa Ora</a>
+                    </p>
+                  </div>
+                `
+              };
+              
+              return transporter.sendMail(mailOptions)
+                .then(() => console.log(`✅ Inviata a: ${recipientEmail}`))
+                .catch(err => console.error(`❌ Fallita per ${recipientEmail}:`, err.message));
+            });
+
+            await Promise.all(emailPromises);
+            
+            console.log("Tutte le notifiche sono state elaborate.");
+          }
+        } catch (emailError) {
+          console.error("Errore generale nel recupero utenti o configurazione mail:", emailError);
         }
-      });
-      return res.status(201).json({ success: true, matchId });
+
+        return res.status(201).json({ success: true, matchId });
+
+      } catch (dbError) {
+        console.error("Errore salvataggio partita:", dbError);
+        return res.status(500).json({ error: "Errore durante la creazione della partita" });
+      }
     }
 
     if (req.method === 'PUT') {

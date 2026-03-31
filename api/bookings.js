@@ -1,7 +1,11 @@
 import { google } from 'googleapis';
 import { v4 as uuidv4 } from 'uuid';
+import nodemailer from 'nodemailer';
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID;
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_APP_PASS = process.env.GMAIL_APP_PASS;
+const APP_URL = process.env.APP_URL || 'https://football-reserv.vercel.app';
 
 async function getAuthClient() {
   return new google.auth.GoogleAuth({
@@ -18,59 +22,48 @@ async function getAuthClient() {
 }
 
 async function sendPromotionEmail(userData, matchData) {
-  const API_KEY = process.env.MAILERSEND_API_KEY;
-  const EMAIL_FROM = process.env.EMAIL_FROM;
-  const APP_URL = process.env.APP_URL || 'https://football-reserv.vercel.app';
   const dateParts = matchData.data.split('-');
   const formattedDate = dateParts.length === 3 
     ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` 
     : matchData.data;
-  console.log("Tentativo invio email a:", userData.email);
 
-  const emailBody = {
-    from: { email: EMAIL_FROM, name: "Football Reserv" },
-    to: [{ email: userData.email, name: `${userData.nome} ${userData.cognome}` }],
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: GMAIL_USER,
+      pass: GMAIL_APP_PASS 
+    }
+  });
+
+  const mailOptions = {
+    from: `"Football Reserv" <${GMAIL_USER}>`,
+    to: userData.email,
     subject: `⚽ Posto liberato! Sei in squadra per la partita a ${matchData.luogo}`,
-    text: `Ciao ${userData.nome}, si è liberato un posto per la partita presso ${matchData.luogo}! Sei stato promosso tra i partecipanti confermati. Link: ${APP_URL}/match/${matchData.matchId}`,
     html: `
-      <div style="font-family: sans-serif; color: #333;">
-        <h2>Ciao ${userData.nome}, buone notizie!</h2>
-        <p>Si è liberato un posto per la partita presso <strong>${matchData.luogo}</strong>.</p>
-        <p>Il tuo stato è stato aggiornato: ora sei tra i <strong>partecipanti confermati</strong>.</p>
-        <hr />
-        <p><strong>Dettagli:</strong></p>
-        <ul>
-          <li>Data: ${formattedDate}</li>
-          <li>Ora: ${matchData.ora}</li>
-          <li>Luogo: ${matchData.indirizzo}</li>
-        </ul>
-        <a href="${APP_URL}/match/${matchData.matchId}" 
-           style="background: #ff0037; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-           Vedi Dettagli Partita
-        </a>
+      <div style="font-family: sans-serif; color: #333; max-width: 600px; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #ff0033;">Ciao ${userData.nome}, buone notizie!</h2>
+        <p>Si è appena liberato un posto per la partita presso <strong>${matchData.luogo}</strong>.</p>
+        <p>Eri in lista d'attesa, ma ora il tuo stato è stato aggiornato: <strong>sei ufficialmente in squadra!</strong></p>
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 5px 0;">📅 <strong>Data:</strong> ${formattedDate}</p>
+          <p style="margin: 5px 0;">⏰ <strong>Ora:</strong> ${matchData.ora}</p>
+          <p style="margin: 5px 0;">📍 <strong>Luogo:</strong> ${matchData.indirizzo}</p>
+        </div>
+        <div style="text-align: center;">
+          <a href="${APP_URL}/match/${matchData.matchId}" 
+             style="background: #ff0033; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+             Vedi Dettagli Partita
+          </a>
+        </div>
       </div>
     `
   };
 
   try {
-    const response = await fetch('https://api.mailersend.com/v1/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      body: JSON.stringify(emailBody)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Errore MailerSend API:", errorText);
-    } else {
-      console.log("Email inviata con successo!");
-    }
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Email di promozione inviata con successo a: ${userData.email}`);
   } catch (error) {
-    console.error("Eccezione durante invio email:", error);
+    console.error("❌ Errore durante l'invio email di promozione:", error.message);
   }
 }
 
@@ -190,7 +183,6 @@ export default async function handler(req, res) {
 
       if (wasConfirmed) {
         const waitingIndex = rows.findIndex(r => r[1] === matchId && r[4] === 'waiting');
-        console.log("Riga cancellata era confirmed, cerco waiting da promuovere. Waiting trovato a indice:", waitingIndex);
         if (waitingIndex !== -1) {
           const waitingUser = rows[waitingIndex];
           const waitingUserId = waitingUser[2];
@@ -211,13 +203,10 @@ export default async function handler(req, res) {
           const matchRow = matchesRes.data.values.find(m => m[0] === matchId);
 
           if (userRow && matchRow) {
-            console.log(`Promuovendo utente ${userRow[1]} da waiting a confirmed per match ${matchRow[4]}`);
-            // ATTENZIONE AGLI INDICI: 0:ID, 1:Email, 2:Nome, 3:Cognome
             await sendPromotionEmail(
               { email: userRow[1], nome: userRow[2], cognome: userRow[3] },
               { luogo: matchRow[4], indirizzo: matchRow[5], data: matchRow[8], ora: matchRow[9], matchId }
             );
-            console.log("Email di promozione inviata a:", userRow[1]);
           }
         }
       }
