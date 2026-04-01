@@ -43,7 +43,14 @@ export default function Navbar() {
             <User size={20} />
             <span>{userProfile?.nome || 'Profilo'}</span>
           </Link>
-          
+          <a 
+            href="https://www.paypal.com/donate/?hosted_button_id=ZYAR6VYBQC3UL" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="navbar-paypal"
+          >
+            Buy me a coffee! ☕
+          </a>
           <button onClick={handleLogout} className="navbar-link navbar-logout">
             <LogOut size={20} />
             <span>Esci</span>
