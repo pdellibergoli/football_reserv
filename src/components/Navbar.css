@@ -67,6 +67,10 @@
 .navbar-link span {
     display: none;
 }
+
+.navbar-logo{
+    font-size: 8px;
+}
 }
 
 .navbar-paypal {
