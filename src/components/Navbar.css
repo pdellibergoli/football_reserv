@@ -1,9 +1,14 @@
 .navbar {
-    background: white;
+    background: var(--navbar-bg);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 10000;
+}
+
+[data-theme='dark'] .navbar {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .navbar-container {
@@ -45,7 +50,7 @@
 }
 
 .navbar-link:hover {
-    background: var(--gray-100);
+    background: var(--bg-hover);
     color: var(--primary);
 }
 
@@ -54,7 +59,8 @@
 }
 
 .navbar-logout:hover {
-    background: #fee2e2;
+    background: var(--logout-hover);
+    color: var(--logout-link-hover);
 }
 
 @media (max-width: 768px) {

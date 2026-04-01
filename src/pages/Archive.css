@@ -1,12 +1,17 @@
 .archive-page { 
   padding: 40px 20px; 
   max-width: 900px; 
-  margin: 0 auto; 
+  margin: 0 auto;
+  color: var(--text-primary);
 }
 
 .archive-header { 
   text-align: center; 
   margin-bottom: 40px; 
+}
+
+.archive-header h1 {
+  color: var(--text-primary);
 }
 
 .archive-list { 
@@ -16,19 +21,23 @@
 }
 
 .archive-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 16px;
   padding: 24px 30px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-left: 6px solid var(--primary); 
-  transition: transform 0.2s ease;
+  border-top: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .archive-card:hover {
   transform: scale(1.01);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
 }
 
 .archive-card-content {
@@ -39,9 +48,10 @@
   flex: 1;
 }
 
+/* Tag Tipologia Partita - Adattamento Dark Mode */
 .match-type-tag {
-  background: #e8f5e9;
-  color: var(--primary-dark);
+  background: rgba(46, 125, 50, 0.15); /* Sfondo semi-trasparente verde */
+  color: #81c784; /* Verde chiaro leggibile */
   padding: 6px 14px;
   border-radius: 50px;
   font-size: 0.75rem;
@@ -52,10 +62,15 @@
   display: inline-block;
 }
 
+[data-theme='light'] .match-type-tag {
+  background: #e8f5e9;
+  color: var(--primary-dark);
+}
+
 .match-main-info h3 {
   margin: 0;
   font-size: 1.5rem; 
-  color: #1a1a1a;
+  color: var(--text-primary);
   font-weight: 800;
   line-height: 1.2;
 }
@@ -63,7 +78,7 @@
 .match-meta {
   display: flex;
   gap: 20px; 
-  color: #718096;
+  color: var(--text-secondary);
   font-size: 0.95rem;
   margin-top: 4px;
 }
@@ -85,6 +100,7 @@
   margin-left: 20px;
 }
 
+/* Bottone Vota Giocatori - Mantiene il giallo ma con ombra adattiva */
 .btn-rate-players {
   background: #ffc107;
   color: #000;
@@ -97,15 +113,16 @@
   gap: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 .btn-rate-players:hover {
   background: #ffb300;
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(255, 193, 7, 0.3);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
+/* Bottone Dettagli - Bordo e testo adattivi */
 .btn-details-outline {
   display: flex;
   align-items: center;
@@ -124,9 +141,30 @@
   background-color: var(--primary);
   color: white;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.2);
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
 }
 
 .btn-details-outline:hover svg {
   transform: translateX(4px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .archive-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+  }
+  
+  .archive-actions {
+    margin-left: 0;
+    margin-top: 20px;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .btn-rate-players, .btn-details-outline {
+    flex: 1;
+    justify-content: center;
+  }
 }

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { LogOut, User, Plus, Home, History, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import './Auth.css';
 
@@ -11,6 +12,21 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDark]);
+  
   async function handleSubmit(e) {
     e.preventDefault();
     
@@ -33,6 +49,14 @@ export default function Login() {
         <div className="auth-header">
           <h1>⚽ Football booking</h1>
           <h2>Accedi</h2>
+          <button 
+            onClick={() => setIsDark(!isDark)} 
+            className="theme-toggle"
+            title="Cambia tema"
+          >
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+            <span>{isDark ? 'Chiaro' : 'Scuro'}</span>
+          </button>
         </div>
         
         {error && <div className="error-message">{error}</div>}

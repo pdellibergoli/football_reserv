@@ -1,17 +1,20 @@
 .profile {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 40px 24px;
-  }
-  
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  color: var(--text-primary);
+}
+
 .profile-header {
   margin-bottom: 32px;
 }
 
 .profile-header h1 {
   font-size: 32px;
+  color: var(--text-primary);
 }
 
+/* Messaggi di feedback */
 .message {
   padding: 16px;
   border-radius: 8px;
@@ -20,14 +23,17 @@
   font-weight: 600;
 }
 
+/* Adattamento messaggi per Dark Mode */
 .message-success {
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .message-error {
-  background: #fee2e2;
-  color: #991b1b;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .profile-grid {
@@ -36,10 +42,11 @@
 }
 
 .profile-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
 }
 
 .card-header {
@@ -51,6 +58,7 @@
 
 .card-header h2 {
   font-size: 24px;
+  color: var(--text-primary);
 }
 
 .profile-info {
@@ -63,7 +71,7 @@
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid var(--gray-200);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .info-row:last-child {
@@ -72,7 +80,7 @@
 
 .info-label {
   font-weight: 600;
-  color: var(--gray-700);
+  color: var(--text-primary);
 }
 
 .profile-form {
@@ -81,6 +89,7 @@
   gap: 20px;
 }
 
+/* Statistiche */
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -92,8 +101,9 @@
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background: var(--gray-50);
+  background: var(--bg-color);
   border-radius: 8px;
+  border: 1px solid var(--border-color);
 }
 
 .stat-icon {
@@ -108,31 +118,27 @@
 
 .stat-label {
   font-size: 14px;
-  color: var(--gray-600);
-}
-
-@media (max-width: 768px) {
-.stats-grid {
-  grid-template-columns: 1fr;
-}
+  color: var(--text-secondary);
 }
 
 .stat-item.clickable {
   cursor: pointer;
-  transition: background 0.2s;
-}
-.stat-item.clickable:hover {
-  background: #f0f0f0;
-  border-radius: 8px;
+  transition: all 0.2s;
 }
 
+.stat-item.clickable:hover {
+  background: var(--border-color);
+  transform: translateY(-2px);
+}
+
+/* Modale Valutazioni Ricevute */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -141,7 +147,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--card-bg);
   width: 90%;
   max-width: 500px;
   max-height: 80vh;
@@ -149,14 +155,16 @@
   overflow-y: auto;
   padding: 25px;
   position: relative;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 15px;
   margin-bottom: 20px;
 }
@@ -166,18 +174,20 @@
   border: none;
   font-size: 28px;
   cursor: pointer;
-  color: #888;
-}
-
-.modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  color: var(--text-secondary);
 }
 
 .rating-item {
   padding: 12px;
-  background: #f9f9f9;
+  background: var(--bg-color);
   border-radius: 8px;
   border-left: 4px solid #ffc107;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
 }
