@@ -277,3 +277,56 @@
   gap: 8px; 
   z-index: 10;
 }
+
+.filters-toggle-container {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.btn-filters-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btn-filters-toggle:hover {
+  border-color: var(--primary);
+  background: var(--bg-color);
+}
+
+.btn-filters-toggle.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Wrapper per l'animazione */
+.filters-wrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-out, opacity 0.3s ease, margin 0.3s ease;
+  opacity: 0;
+  margin-bottom: 0;
+}
+
+.filters-wrapper.open {
+  max-height: 1000px; /* Un valore abbastanza alto da contenere i filtri */
+  opacity: 1;
+  margin-bottom: 32px;
+  transition: max-height 0.6s ease-in, opacity 0.4s ease, margin 0.3s ease;
+}
+
+/* Adattamento Dark Mode per l'ombra del pulsante */
+[data-theme='dark'] .btn-filters-toggle {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}

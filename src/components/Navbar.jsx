@@ -1,29 +1,23 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, User, Plus, Home, History, Sun, Moon } from 'lucide-react';
+import { LogOut, User, Plus, Home, History, Sun, Moon, Menu, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import './Navbar.css';
 
 export default function Navbar() {
   const { logout, userProfile } = useAuth();
   const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
 
-  // Inizializzazione: controlla se esiste una preferenza salvata, altrimenti usa il tema del sistema
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  // Applica il tema al tag HTML e salva la preferenza
   useEffect(() => {
-    if (isDark) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'light');
-      localStorage.setItem('theme', 'light');
-    }
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
   async function handleLogout() {
@@ -42,33 +36,38 @@ export default function Navbar() {
           ⚽ Football booking
         </Link>
         
-        <div className="navbar-menu">
-          <Link to="/" className="navbar-link">
+        <button className="hamburger" onClick={() => setIsOpen(!isOpen)}>
+          {isOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
+
+        <div className={`navbar-menu ${isOpen ? 'open' : ''}`}>
+          <Link to="/" className="navbar-link" onClick={() => setIsOpen(false)}>
             <Home size={20} />
             <span>Partite</span>
           </Link>
           
-          <Link to="/create-match" className="navbar-link">
+          <Link to="/create-match" className="navbar-link" onClick={() => setIsOpen(false)}>
             <Plus size={20} />
             <span>Crea Partita</span>
           </Link>
 
-          <Link to="/archive" className="navbar-link">
+          <Link to="/archive" className="navbar-link" onClick={() => setIsOpen(false)}>
             <History size={20} />
             <span>Archivio</span>
           </Link>
           
-          <Link to="/profile" className="navbar-link">
+          <Link to="/profile" className="navbar-link" onClick={() => setIsOpen(false)}>
             <User size={20} />
             <span>{userProfile?.nome || 'Profilo'}</span>
           </Link>
 
           <button 
             onClick={() => setIsDark(!isDark)} 
-            className="navbar-link theme-toggle"
+            className="navbar-link"
             title="Cambia tema"
           >
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
+            <span>{isDark ? 'Tema Chiaro' : 'Tema Scuro'}</span>
           </button>
 
           <a 

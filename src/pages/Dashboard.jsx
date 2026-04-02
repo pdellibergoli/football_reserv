@@ -10,7 +10,9 @@ import {
   Search, 
   Trophy, 
   Filter,
-  Euro
+  Euro,
+  ChevronDown, 
+  ChevronUp
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -24,7 +26,7 @@ export default function Dashboard() {
   const [searchCitta, setSearchCitta] = useState('');
   const [searchProvincia, setSearchProvincia] = useState('');
   const [selectedType, setSelectedType] = useState('Tutti');
-
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const matchTypes = ['Tutti', 'Calcio a 5', 'Calcio a 7', 'Calcio a 8', 'Calcio a 11'];
 
   useEffect(() => {
@@ -73,44 +75,56 @@ export default function Dashboard() {
         <p>Trova la tua prossima sfida o scendi in campo con i tuoi amici.</p>
       </div>
 
-      <div className="filters">
-        <div className="filter-group">
-          <label>Tipologia</label>
-          <div className="filter-buttons">
-            {matchTypes.map(type => (
-              <button 
-                key={type}
-                className={selectedType === type ? 'active' : ''}
-                onClick={() => setSelectedType(type)}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="filters-toggle-container">
+        <button 
+          className={`btn-filters-toggle ${isFiltersOpen ? 'active' : ''}`}
+          onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+        >
+          <Filter size={20} />
+          <span>Filtra partite</span>
+          {isFiltersOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
+      </div>
 
-        <div className="filter-inputs">
-          <div className="filter-input">
-            <label>Città</label>
-            <input 
-              type="text" 
-              placeholder="Cerca città..." 
-              value={searchCitta}
-              onChange={(e) => setSearchCitta(e.target.value)}
-            />
+      <div className={`filters-wrapper ${isFiltersOpen ? 'open' : ''}`}>
+        <div className="filters">
+          <div className="filter-group">
+            <label>Tipologia</label>
+            <div className="filter-buttons">
+              {matchTypes.map(type => (
+                <button 
+                  key={type}
+                  className={selectedType === type ? 'active' : ''}
+                  onClick={() => setSelectedType(type)}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="filter-input">
-            <label>Provincia</label>
-            <input 
-              type="text" 
-              placeholder="Cerca provincia..." 
-              value={searchProvincia}
-              onChange={(e) => setSearchProvincia(e.target.value)}
-            />
+
+          <div className="filter-inputs">
+            <div className="filter-input">
+              <label>Città</label>
+              <input 
+                type="text" 
+                placeholder="Cerca città..." 
+                value={searchCitta}
+                onChange={(e) => setSearchCitta(e.target.value)}
+              />
+            </div>
+            <div className="filter-input">
+              <label>Provincia</label>
+              <input 
+                type="text" 
+                placeholder="Cerca provincia..." 
+                value={searchProvincia}
+                onChange={(e) => setSearchProvincia(e.target.value)}
+              />
+            </div>
           </div>
         </div>
       </div>
-
       <div className="matches-grid">
         {filteredMatches.length > 0 ? (
           filteredMatches.map(match => {
