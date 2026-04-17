@@ -121,7 +121,6 @@ export default function MatchDetail() {
     }
   }
 
-  // FUNZIONE PER INVIO NOTIFICHE CANCELLAZIONE
   const triggerDeleteNotifications = (emails, matchDetails) => {
     fetch('/api/notify', {
       method: 'POST',
@@ -141,11 +140,9 @@ export default function MatchDetail() {
   async function handleDeleteMatch() {
     if (!confirm('Sei sicuro di voler eliminare questa partita?')) return;
     try {
-      // Chiamiamo l'api per cancellare (che ora restituisce anche le email degli iscritti)
       const res = await api.deleteMatch(id);
       
       if (res.success) {
-        // Se c'erano iscritti, mandiamo le mail in background
         if (res.emails && res.emails.length > 0) {
           triggerDeleteNotifications(res.emails, match);
         }

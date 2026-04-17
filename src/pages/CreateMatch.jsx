@@ -174,7 +174,6 @@ export default function CreateMatch() {
         
         navigate('/');
 
-        // Notifica nuova partita in background
         if (response.success && response.emails) {
           triggerNotifications('new', response.emails, response.matchId, formData);
         }

@@ -28,7 +28,6 @@ export default async function handler(req, res) {
     const auth = await getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // --- GET: RECUPERO PARTITE ---
     if (req.method === 'GET') {
       const [matchesRes, bookingsRes] = await Promise.all([
         sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:O' }),
@@ -107,7 +106,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ matches: filtered });
     }
 
-    // --- POST: CREAZIONE PARTITA ---
     if (req.method === 'POST') {
       const matchId = uuidv4();
       const { organizzatoreId, citta, provincia, luogo, indirizzo, lat, lng, data, ora, tipologia, prezzo, maxPartecipanti } = req.body;
@@ -121,7 +119,6 @@ export default async function handler(req, res) {
         }
       });
 
-      // Recuperiamo tutte le email per inviarle al frontend
       const usersRes = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A:I' });
       const allEmails = (usersRes.data.values || []).slice(1).map(r => r[1]).filter(e => e && e.includes('@'));
 
@@ -132,7 +129,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // --- PUT: MODIFICA PARTITA ---
     if (req.method === 'PUT') {
       const { matchId } = req.query;
       const data = req.body;
@@ -164,7 +160,6 @@ export default async function handler(req, res) {
         requestBody: { values: [updatedValues] }
       });
 
-      // Identifichiamo gli iscritti
       const participantsIds = (bookingsRes.data.values || []).filter(b => b[1] === matchId).map(b => b[2]);
       const emailsToNotify = (usersRes.data.values || []).filter(u => participantsIds.includes(u[0])).map(u => u[1]);
 
@@ -174,7 +169,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // --- DELETE: CANCELLAZIONE PARTITA ---
     if (req.method === 'DELETE') {
       const { matchId } = req.query;
       const [matchesRes, bookingsRes, usersRes] = await Promise.all([
@@ -187,7 +181,6 @@ export default async function handler(req, res) {
       const rowIndex = rows.findIndex(r => r[0] === matchId);
       if (rowIndex === -1) return res.status(404).json({ error: 'Match non trovato' });
 
-      // Salviamo i dati della partita prima di "cancellarla" per la mail
       const oldMatchData = {
         tipologia: rows[rowIndex][10],
         luogo: rows[rowIndex][4],
