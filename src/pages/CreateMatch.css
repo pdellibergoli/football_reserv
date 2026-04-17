@@ -16,7 +16,7 @@
 
 .create-match-card h1 {
   margin-bottom: 2rem;
-  color: var(--primary); /* Il tuo verde calcio */
+  color: var(--primary); 
   text-align: center;
   font-size: 1.8rem;
 }
@@ -59,7 +59,7 @@
   border-radius: 6px;
   font-size: 1rem;
   transition: border-color 0.2s;
-  background-color: var(--bg-color); /* Input leggermente più scuri della card in dark mode */
+  background-color: var(--bg-color); 
   color: var(--text-primary);
 }
 
@@ -69,7 +69,6 @@
   border-color: var(--primary);
 }
 
-/* --- SUGGERIMENTI INDIRIZZO (Importante per Dark Mode) --- */
 .address-search-container {
   position: relative;
 }
@@ -113,11 +112,10 @@
 .address-preview {
   margin-top: 0.4rem;
   font-size: 0.85rem;
-  color: #28a745; /* Manteniamo il verde successo */
+  color: #28a745; 
   font-weight: 500;
 }
 
-/* --- AZIONI E ERRORI --- */
 .form-actions {
   display: flex;
   gap: 1rem;
@@ -145,7 +143,6 @@
   padding: 12px 30px;
 }
 
-/* Adattamento messaggi di errore per Dark Mode */
 .error-message {
   background-color: rgba(220, 38, 38, 0.1);
   color: #ef4444;
@@ -156,7 +153,6 @@
   font-size: 0.9rem;
 }
 
-/* Loader */
 .loader-spinner-small {
   position: absolute;
   right: 10px;
@@ -177,4 +173,16 @@
   color: #28a745;
   margin-top: 5px;
   font-weight: 500;
+}
+
+[data-theme='dark'] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(100%) contrast(100%);
+    cursor: pointer;
+}
+
+
+[data-theme='dark'] input[type="date"]::-webkit-calendar-picker-indicator:hover,
+[data-theme='dark'] input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 0.7;
 }
