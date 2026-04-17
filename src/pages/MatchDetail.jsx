@@ -121,12 +121,38 @@ export default function MatchDetail() {
     }
   }
 
+  // FUNZIONE PER INVIO NOTIFICHE CANCELLAZIONE
+  const triggerDeleteNotifications = (emails, matchDetails) => {
+    fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'delete',
+        emails: emails,
+        matchData: {
+          tipologia: matchDetails.tipologia,
+          luogo: matchDetails.luogo,
+          data: matchDetails.data
+        }
+      })
+    }).catch(err => console.error("Errore notifiche cancellazione:", err));
+  };
+
   async function handleDeleteMatch() {
     if (!confirm('Sei sicuro di voler eliminare questa partita?')) return;
     try {
-      await api.deleteMatch(id);
-      navigate('/');
+      // Chiamiamo l'api per cancellare (che ora restituisce anche le email degli iscritti)
+      const res = await api.deleteMatch(id);
+      
+      if (res.success) {
+        // Se c'erano iscritti, mandiamo le mail in background
+        if (res.emails && res.emails.length > 0) {
+          triggerDeleteNotifications(res.emails, match);
+        }
+        navigate('/');
+      }
     } catch (error) {
+      console.error("Errore cancellazione:", error);
       alert('Errore durante l\'eliminazione.');
     }
   }
@@ -218,14 +244,21 @@ export default function MatchDetail() {
                   )}
                   
                   {waitingPlayers.length > 0 && (
-                    <div className="waitlist-mini-section" style={{marginTop:'20px', borderTop:'1px solid #eee', paddingTop:'10px'}}>
+                    <div className="waitlist-mini-section" style={{marginTop:'20px', borderTop:'1px solid #eee', paddingTop:'10px', color: 'var(--text-primary)'}}>
                       <h4 style={{fontSize:'0.9rem', marginBottom:'10px', color: '#f39c12'}}>In lista d'attesa:</h4>
-                      {waitingPlayers.map((p, index) => (
-                        <div key={p.userId || index} className="p-badge waiting">
-                          <span className="wait-pos">#{index + 1}</span>
-                          <span className="p-name">{p.nome} {p.cognome}</span>
-                        </div>
-                      ))}
+                      <div className="participants-mini-list">
+                        {waitingPlayers.map((p, index) => (
+                          <div key={p.userId || index} className="p-badge">
+                             <div className="p-avatar" style={{backgroundColor: '#f39c12'}}>
+                              {p.nome ? p.nome[0] : 'U'}
+                            </div>
+                            <div className="p-text">
+                              <span className="p-name">{p.nome} {p.cognome}</span>
+                              <span className="p-role">Lista attesa #{index + 1}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -246,9 +279,9 @@ export default function MatchDetail() {
 
           <div className="booking-actions">
             {isPast ? (
-              <div className="alert alert-warning" style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6' }}>
-                <Clock size={24} style={{ marginBottom: '10px', color: '#6c757d' }} />
-                <p style={{ margin: 0, fontWeight: '600', color: '#6c757d' }}>
+              <div className="alert alert-warning" style={{ textAlign: 'center', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)' }}>
+                <Clock size={24} style={{ marginBottom: '10px', color: 'var(--text-secondary)' }} />
+                <p style={{ margin: 0, fontWeight: '600', color: 'var(--text-secondary)' }}>
                   Partita terminata. Prenotazioni chiuse.
                 </p>
               </div>

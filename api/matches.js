@@ -1,13 +1,7 @@
 import { google } from 'googleapis';
 import { v4 as uuidv4 } from 'uuid';
-import nodemailer from 'nodemailer';
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID;
-const API_KEY = process.env.MAILERSEND_API_KEY;
-const EMAIL_FROM = process.env.EMAIL_FROM;
-const APP_URL = process.env.APP_URL || 'https://football-reserv.vercel.app';
-const GMAIL_USER = process.env.GMAIL_USER;
-const GMAIL_APP_PASS = process.env.GMAIL_APP_PASS;
 
 async function getAuthClient() {
   return new google.auth.GoogleAuth({
@@ -34,6 +28,7 @@ export default async function handler(req, res) {
     const auth = await getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
 
+    // --- GET: RECUPERO PARTITE ---
     if (req.method === 'GET') {
       const [matchesRes, bookingsRes] = await Promise.all([
         sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:O' }),
@@ -42,16 +37,12 @@ export default async function handler(req, res) {
 
       const rows = matchesRes.data.values || [];
       const bookingRows = bookingsRes.data.values || [];
-      
       const includePast = req.query.includePast === 'true';
       const adesso = new Date();
 
       const allMatches = rows.slice(1).map(row => {
         const mId = row[0];
-        
-        const realOccupied = bookingRows.filter(b => 
-          b[1] === mId && (b[4] === 'confirmed' || !b[4])
-        ).length;
+        const realOccupied = bookingRows.filter(b => b[1] === mId && (b[4] === 'confirmed' || !b[4])).length;
 
         return {
           matchId: mId,
@@ -76,10 +67,7 @@ export default async function handler(req, res) {
         const singleMatch = allMatches.find(m => m.matchId === req.query.matchId);
         if (!singleMatch) return res.status(404).json({ error: 'Match non trovato' });
         
-        const usersRes = await sheets.spreadsheets.values.get({ 
-          spreadsheetId: SPREADSHEET_ID, 
-          range: 'Users!A:G' 
-        });
+        const usersRes = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A:G' });
         const userRows = usersRes.data.values || [];
 
         const matchParticipants = bookingRows
@@ -119,125 +107,54 @@ export default async function handler(req, res) {
       return res.status(200).json({ matches: filtered });
     }
 
+    // --- POST: CREAZIONE PARTITA ---
     if (req.method === 'POST') {
       const matchId = uuidv4();
-      const { 
-        organizzatoreId, citta, provincia, luogo, indirizzo, 
-        lat, lng, data, ora, tipologia, prezzo, maxPartecipanti 
-      } = req.body;
+      const { organizzatoreId, citta, provincia, luogo, indirizzo, lat, lng, data, ora, tipologia, prezzo, maxPartecipanti } = req.body;
       
-      try {
-        await sheets.spreadsheets.values.append({
-          spreadsheetId: SPREADSHEET_ID,
-          range: 'Matches!A:O',
-          valueInputOption: 'USER_ENTERED',
-          requestBody: {
-            values: [[
-              matchId, organizzatoreId, citta, provincia, luogo, indirizzo, 
-              `'${lat}`, `'${lng}`, data, ora, tipologia, prezzo, maxPartecipanti, 0, 'active'
-            ]]
-          }
-        });
-
-        try {
-          console.log("Inizio recupero utenti per invio notifiche tramite Gmail...");
-          
-          const usersRes = await sheets.spreadsheets.values.get({ 
-            spreadsheetId: SPREADSHEET_ID, 
-            range: 'Users!A:I' 
-          });
-          const userRows = usersRes.data.values || [];
-          
-          const allEmails = userRows
-            .slice(1) 
-            .map(row => row[1])
-            .filter(email => email && email.includes('@'));
-
-          if (allEmails.length > 0) {
-            const transporter = nodemailer.createTransport({
-              service: 'gmail',
-              auth: {
-                user: GMAIL_USER,
-                pass: GMAIL_APP_PASS 
-              }
-            });
-
-            console.log(`Inviando ${allEmails.length} email in parallelo...`);
-
-            const emailPromises = allEmails.map(recipientEmail => {
-              const mailOptions = {
-                from: `"Football Reserv"`,
-                to: recipientEmail,
-                subject: `⚽ Nuova Partita: ${tipologia} a ${citta}!`,
-                html: `
-                  <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-                    <h2 style="color: #ff0033;">Nuova Partita Disponibile!</h2>
-                    <p>Ciao! Una nuova partita di <strong>${tipologia}</strong> è stata appena creata.</p>
-                    <div style="background: #f9f9f9; padding: 15px; border-radius: 8px;">
-                      <p>📍 <strong>Dove:</strong> ${luogo} (${citta})</p>
-                      <p>📅 <strong>Quando:</strong> ${data} alle ore ${ora}</p>
-                    </div>
-                    <p style="text-align: center; margin-top: 20px;">
-                      <a href="${APP_URL}/matches/${matchId}" style="background: #ff0033; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Partecipa Ora</a>
-                    </p>
-                  </div>
-                `
-              };
-              
-              return transporter.sendMail(mailOptions)
-                .then(() => console.log(`✅ Inviata a: ${recipientEmail}`))
-                .catch(err => console.error(`❌ Fallita per ${recipientEmail}:`, err.message));
-            });
-
-            await Promise.all(emailPromises);
-            
-            console.log("Tutte le notifiche sono state elaborate.");
-          }
-        } catch (emailError) {
-          console.error("Errore generale nel recupero utenti o configurazione mail:", emailError);
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Matches!A:O',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[matchId, organizzatoreId, citta, provincia, luogo, indirizzo, `'${lat}`, `'${lng}`, data, ora, tipologia, prezzo, maxPartecipanti, 0, 'active']]
         }
+      });
 
-        return res.status(201).json({ success: true, matchId });
+      // Recuperiamo tutte le email per inviarle al frontend
+      const usersRes = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A:I' });
+      const allEmails = (usersRes.data.values || []).slice(1).map(r => r[1]).filter(e => e && e.includes('@'));
 
-      } catch (dbError) {
-        console.error("Errore salvataggio partita:", dbError);
-        return res.status(500).json({ error: "Errore durante la creazione della partita" });
-      }
+      return res.status(201).json({ 
+        success: true, 
+        matchId, 
+        emails: allEmails 
+      });
     }
 
+    // --- PUT: MODIFICA PARTITA ---
     if (req.method === 'PUT') {
       const { matchId } = req.query;
       const data = req.body;
 
-      const getRows = await sheets.spreadsheets.values.get({ 
-        spreadsheetId: SPREADSHEET_ID, 
-        range: 'Matches!A:O' 
-      });
-      const rows = getRows.data.values || [];
-      const rowIndex = rows.findIndex(r => r[0] === matchId);
+      const [matchesRes, bookingsRes, usersRes] = await Promise.all([
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:O' }),
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Bookings!A:E' }),
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A:I' })
+      ]);
 
+      const rows = matchesRes.data.values || [];
+      const rowIndex = rows.findIndex(r => r[0] === matchId);
       if (rowIndex === -1) return res.status(404).json({ error: 'Partita non trovata' });
 
-      const originalCreatorId = rows[rowIndex][1]; 
-      const currentOccupied = rows[rowIndex][13];  
-      const currentStatus = rows[rowIndex][14];
-
       const updatedValues = [
-        matchId,                                    
-        originalCreatorId,                           
-        data.citta || rows[rowIndex][2],            
-        data.provincia || rows[rowIndex][3],         
-        data.luogo || rows[rowIndex][4],             
-        data.indirizzo || rows[rowIndex][5],         
-        data.lat !== undefined ? `'${data.lat}` : rows[rowIndex][6], 
-        data.lng !== undefined ? `'${data.lng}` : rows[rowIndex][7], 
-        data.data || rows[rowIndex][8],              
-        data.ora || rows[rowIndex][9],               
-        data.tipologia || rows[rowIndex][10],        
-        data.prezzo !== undefined ? data.prezzo : rows[rowIndex][11], 
-        data.maxPartecipanti || rows[rowIndex][12],  
-        currentOccupied,                             
-        currentStatus || 'active'                    
+        matchId, rows[rowIndex][1], data.citta || rows[rowIndex][2], data.provincia || rows[rowIndex][3],
+        data.luogo || rows[rowIndex][4], data.indirizzo || rows[rowIndex][5],
+        data.lat !== undefined ? `'${data.lat}` : rows[rowIndex][6],
+        data.lng !== undefined ? `'${data.lng}` : rows[rowIndex][7],
+        data.data || rows[rowIndex][8], data.ora || rows[rowIndex][9],
+        data.tipologia || rows[rowIndex][10], data.prezzo !== undefined ? data.prezzo : rows[rowIndex][11],
+        data.maxPartecipanti || rows[rowIndex][12], rows[rowIndex][13], rows[rowIndex][14] || 'active'
       ];
 
       await sheets.spreadsheets.values.update({
@@ -247,16 +164,35 @@ export default async function handler(req, res) {
         requestBody: { values: [updatedValues] }
       });
 
-      return res.status(200).json({ success: true });
+      // Identifichiamo gli iscritti
+      const participantsIds = (bookingsRes.data.values || []).filter(b => b[1] === matchId).map(b => b[2]);
+      const emailsToNotify = (usersRes.data.values || []).filter(u => participantsIds.includes(u[0])).map(u => u[1]);
+
+      return res.status(200).json({ 
+        success: true, 
+        emails: emailsToNotify 
+      });
     }
 
+    // --- DELETE: CANCELLAZIONE PARTITA ---
     if (req.method === 'DELETE') {
       const { matchId } = req.query;
-      const getRows = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:O' });
-      const rows = getRows.data.values || [];
-      const rowIndex = rows.findIndex(r => r[0] === matchId);
+      const [matchesRes, bookingsRes, usersRes] = await Promise.all([
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:O' }),
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Bookings!A:E' }),
+        sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A:I' })
+      ]);
 
+      const rows = matchesRes.data.values || [];
+      const rowIndex = rows.findIndex(r => r[0] === matchId);
       if (rowIndex === -1) return res.status(404).json({ error: 'Match non trovato' });
+
+      // Salviamo i dati della partita prima di "cancellarla" per la mail
+      const oldMatchData = {
+        tipologia: rows[rowIndex][10],
+        luogo: rows[rowIndex][4],
+        data: rows[rowIndex][8]
+      };
 
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
@@ -264,7 +200,15 @@ export default async function handler(req, res) {
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [['cancelled']] }
       });
-      return res.status(200).json({ success: true });
+
+      const participantsIds = (bookingsRes.data.values || []).filter(b => b[1] === matchId).map(b => b[2]);
+      const emailsToNotify = (usersRes.data.values || []).filter(u => participantsIds.includes(u[0])).map(u => u[1]);
+
+      return res.status(200).json({ 
+        success: true, 
+        emails: emailsToNotify,
+        matchData: oldMatchData 
+      });
     }
 
   } catch (error) {

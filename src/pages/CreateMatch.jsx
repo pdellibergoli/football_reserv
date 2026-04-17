@@ -126,6 +126,25 @@ export default function CreateMatch() {
     setFormData(prev => ({ ...prev, [name]: value }));
   }
 
+  const triggerNotifications = (type, emails, matchId, matchDetails) => {
+    fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: type,
+        emails: emails,
+        matchData: {
+          matchId: matchId,
+          tipologia: matchDetails.tipologia,
+          citta: matchDetails.citta,
+          luogo: matchDetails.luogo,
+          data: matchDetails.data,
+          ora: matchDetails.ora
+        }
+      })
+    }).catch(err => console.error("Errore invio notifiche:", err));
+  };
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!formData.lat) return setError('Seleziona un indirizzo dai suggerimenti');
@@ -135,8 +154,13 @@ export default function CreateMatch() {
       setError('');
       
       if (isEditMode) {
-        await api.updateMatch(id, formData);
+        const response = await api.updateMatch(id, formData);
+        
         navigate(`/match/${id}`);
+
+        if (response.success && response.emails) {
+          triggerNotifications('update', response.emails, id, formData);
+        }
       } else {
         const newMatchData = {
           ...formData,
@@ -145,8 +169,15 @@ export default function CreateMatch() {
           stato: 'active',
           createdAt: new Date().toISOString()
         };
-        await api.createMatch(newMatchData);
+        
+        const response = await api.createMatch(newMatchData);
+        
         navigate('/');
+
+        // Notifica nuova partita in background
+        if (response.success && response.emails) {
+          triggerNotifications('new', response.emails, response.matchId, formData);
+        }
       }
     } catch (err) {
       console.error("Errore salvataggio:", err);
