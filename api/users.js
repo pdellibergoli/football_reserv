@@ -32,35 +32,54 @@ export default async function handler(req, res) {
 
     const userId = req.query.userId || req.query.params?.[0];
 
-    if (req.method === 'GET' && userId) {
+    // --- GET: SINGOLO UTENTE O LISTA COMPLETA ---
+    if (req.method === 'GET') {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: `${SHEET_NAME}!A:I`, 
       });
     
       const rows = response.data.values || [];
-      const user = rows.find(row => row[0] === userId);
-    
-      if (!user) {
-        return res.status(404).json({ error: 'Utente non trovato' });
+
+      // Se viene fornito un userId, restituisce il singolo utente
+      if (userId) {
+        const user = rows.find(row => row[0] === userId);
+      
+        if (!user) {
+          return res.status(404).json({ error: 'Utente non trovato' });
+        }
+      
+        return res.status(200).json({
+          userId: user[0],      
+          email: user[1],       
+          nome: user[2],        
+          cognome: user[3],     
+          dataNascita: user[4], 
+          sesso: user[5],       
+          ruolo: user[6],       
+          createdAt: user[7],
+          isAdmin: user[8] === 'TRUE' || user[8] === 'true'
+        });
       }
-    
-      return res.status(200).json({
-        userId: user[0],      
-        email: user[1],       
-        nome: user[2],        
-        cognome: user[3],     
-        dataNascita: user[4], 
-        sesso: user[5],       
-        ruolo: user[6],       
-        createdAt: user[7],
-        isAdmin: user[8] === 'TRUE'
-      });
+
+      // Se NON viene fornito userId, restituisce la lista completa (per l'Admin)
+      // Saltiamo la prima riga se contiene le intestazioni
+      const usersList = rows.slice(1).map(user => ({
+        userId: user[0],
+        email: user[1],
+        nome: user[2],
+        cognome: user[3],
+        ruolo: user[6],
+        isAdmin: user[8] === 'TRUE' || user[8] === 'true'
+      }));
+
+      return res.status(200).json({ users: usersList });
     }
 
+    // --- POST: CREAZIONE NUOVO UTENTE ---
     if (req.method === 'POST') {
       const { userId, email, nome, cognome, dataNascita, sesso, ruolo, createdAt } = req.body;
-      const isAdmin = 'false';
+      const isAdmin = 'false'; // Default per i nuovi iscritti
     
       try {
         await sheets.spreadsheets.values.append({
@@ -79,6 +98,7 @@ export default async function handler(req, res) {
       }
     }
 
+    // --- PUT: AGGIORNAMENTO PROFILO ---
     if (req.method === 'PUT' && userId) {
       const { nome, cognome, dataNascita, sesso, ruolo } = req.body;
 
@@ -94,6 +114,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Utente non trovato' });
       }
 
+      // Aggiorniamo solo le colonne da C a G (Nome, Cognome, Data, Sesso, Ruolo)
       const range = `${SHEET_NAME}!C${rowIndex + 1}:G${rowIndex + 1}`;
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,

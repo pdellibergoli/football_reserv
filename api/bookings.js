@@ -21,6 +21,7 @@ async function getAuthClient() {
   });
 }
 
+// Funzione per inviare la mail quando uno "scatta" dalla lista d'attesa a confermato
 async function sendPromotionEmail(userData, matchData) {
   const dateParts = matchData.data.split('-');
   const formattedDate = dateParts.length === 3 
@@ -61,9 +62,8 @@ async function sendPromotionEmail(userData, matchData) {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Email di promozione inviata con successo a: ${userData.email}`);
   } catch (error) {
-    console.error("❌ Errore durante l'invio email di promozione:", error.message);
+    console.error("❌ Errore invio email promozione:", error.message);
   }
 }
 
@@ -77,9 +77,9 @@ export default async function handler(req, res) {
     const auth = await getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
 
+    // --- GET: RECUPERO PRENOTAZIONI ---
     if (req.method === 'GET') {
       const { matchId, userId, type } = req.query;
-      
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: 'Bookings!A:E',
@@ -87,51 +87,39 @@ export default async function handler(req, res) {
       const rows = response.data.values || [];
       
       if (matchId && type === 'participants') {
-        const usersRes = await sheets.spreadsheets.values.get({
-          spreadsheetId: SPREADSHEET_ID,
-          range: 'Users!A:G', 
-        });
+        const usersRes = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A:G' });
         const userRows = usersRes.data.values || [];
 
         const participants = rows
-          .filter(row => row[1] === matchId && row[4] === 'confirmed')
+          .filter(row => row[1] === matchId)
           .map(row => {
             const user = userRows.find(u => u[0] === row[2]);
             return {
               bookingId: row[0],
               userId: row[2],
+              status: row[4] || 'confirmed',
               nome: user ? user[2] : 'Utente',
               cognome: user ? user[3] : 'Sconosciuto',
               ruolo: user ? user[6] : 'Giocatore'
             };
           });
-
         return res.status(200).json({ participants });
       }
 
       if (userId) {
-        const userBookings = rows.slice(1)
-          .filter(row => row[2] === userId)
-          .map(row => ({
-            bookingId: row[0],
-            matchId: row[1],
-            userId: row[2],
-            createdAt: row[3],
-            status: row[4] || 'confirmed'
-          }));
+        const userBookings = rows.slice(1).filter(row => row[2] === userId).map(row => ({
+          bookingId: row[0], matchId: row[1], userId: row[2], createdAt: row[3], status: row[4] || 'confirmed'
+        }));
         return res.status(200).json({ bookings: userBookings });
       }
 
       const allBookings = rows.slice(1).map(row => ({
-        bookingId: row[0],
-        matchId: row[1],
-        userId: row[2],
-        createdAt: row[3],
-        status: row[4] || 'confirmed'
+        bookingId: row[0], matchId: row[1], userId: row[2], createdAt: row[3], status: row[4] || 'confirmed'
       }));
       return res.status(200).json({ bookings: allBookings });
     }
 
+    // --- POST: CREA PRENOTAZIONE (Anche da Admin) ---
     if (req.method === 'POST') {
       const { matchId, userId } = req.body;
       const createdAt = new Date().toISOString();
@@ -142,11 +130,12 @@ export default async function handler(req, res) {
       ]);
 
       const matchRow = matchesRes.data.values.find(r => r[0] === matchId);
-      if (!matchRow) return res.status(404).json({ error: 'Match not found' });
+      if (!matchRow) return res.status(404).json({ error: 'Match non trovato' });
 
       const postiTotali = parseInt(matchRow[12]);
       const confirmedBookings = (bookingsRes.data.values || []).filter(b => b[1] === matchId && b[4] === 'confirmed');
 
+      // Se i posti sono pieni, va in lista d'attesa ('waiting')
       const status = confirmedBookings.length < postiTotali ? 'confirmed' : 'waiting';
 
       const newBooking = [uuidv4(), matchId, userId, createdAt, status];
@@ -160,13 +149,11 @@ export default async function handler(req, res) {
       return res.status(201).json({ success: true, status });
     }
 
+    // --- DELETE: CANCELLA PRENOTAZIONE (E promuovi il primo in attesa) ---
     if (req.method === 'DELETE') {
       const { bookingId } = req.query;
 
-      const bookingsRes = await sheets.spreadsheets.values.get({ 
-        spreadsheetId: SPREADSHEET_ID, 
-        range: 'Bookings!A:E' 
-      });
+      const bookingsRes = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Bookings!A:E' });
       const rows = bookingsRes.data.values || [];
       const rowIndex = rows.findIndex(row => row[0] === bookingId);
 
@@ -176,17 +163,21 @@ export default async function handler(req, res) {
       const matchId = deletedRow[1];
       const wasConfirmed = deletedRow[4] === 'confirmed';
 
+      // Rimuoviamo la riga
       await sheets.spreadsheets.values.clear({
         spreadsheetId: SPREADSHEET_ID,
         range: `Bookings!A${rowIndex + 1}:E${rowIndex + 1}`,
       });
 
+      // Se chi è stato rimosso era 'confirmed', dobbiamo promuovere il primo 'waiting'
       if (wasConfirmed) {
+        // Cerchiamo il primo utente in waiting per questo matchID
         const waitingIndex = rows.findIndex(r => r[1] === matchId && r[4] === 'waiting');
+        
         if (waitingIndex !== -1) {
-          const waitingUser = rows[waitingIndex];
-          const waitingUserId = waitingUser[2];
+          const waitingUserId = rows[waitingIndex][2];
 
+          // 1. Aggiorniamo lo stato in 'confirmed' su Sheets
           await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
             range: `Bookings!E${waitingIndex + 1}`,
@@ -194,6 +185,7 @@ export default async function handler(req, res) {
             requestBody: { values: [['confirmed']] },
           });
 
+          // 2. Recuperiamo info per inviare l'email di promozione
           const [usersRes, matchesRes] = await Promise.all([
             sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A:G' }),
             sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Matches!A:K' })
@@ -204,7 +196,7 @@ export default async function handler(req, res) {
 
           if (userRow && matchRow) {
             await sendPromotionEmail(
-              { email: userRow[1], nome: userRow[2], cognome: userRow[3] },
+              { email: userRow[1], nome: userRow[2] },
               { luogo: matchRow[4], indirizzo: matchRow[5], data: matchRow[8], ora: matchRow[9], matchId }
             );
           }
@@ -214,6 +206,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
   } catch (error) {
+    console.error("API Bookings Error:", error);
     return res.status(500).json({ error: error.message });
   }
 }

@@ -136,5 +136,31 @@ export const api = {
       return this.updateRating(ratingData.ratingId, ratingData);
     }
     return this.createRating(ratingData);
+  },
+
+  async getUsers() {
+    const res = await fetch(`${API_BASE}/users`);
+    return res.json();
+  },
+
+  async adminAddParticipant(matchId, userId) {
+    const response = await fetch(`${API_BASE}/bookings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        matchId, 
+        userId, 
+        createdAt: new Date().toISOString(),
+        adminAction: true 
+      }),
+    });
+    return response.json();
+  },
+
+  async adminRemoveParticipant(bookingId) {
+    const response = await fetch(`${API_BASE}/bookings?bookingId=${bookingId}`, {
+      method: 'DELETE'
+    });
+    return response.json();
   }
 };

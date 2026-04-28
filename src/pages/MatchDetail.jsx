@@ -6,7 +6,7 @@ import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Users, MapPin, Calendar, Clock, Euro, 
-  ChevronDown, ChevronUp, CheckCircle, Trash2, Edit, Clock8 
+  ChevronDown, ChevronUp, CheckCircle, Trash2, Edit, Clock8, UserPlus 
 } from 'lucide-react';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -30,10 +30,12 @@ export default function MatchDetail() {
   
   const [match, setMatch] = useState(null);
   const [participants, setParticipants] = useState([]);
+  const [allUsers, setAllUsers] = useState([]); // Per la lista admin
   const [userBooking, setUserBooking] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false); 
   const [loading, setLoading] = useState(true);
   const [showParticipants, setShowParticipants] = useState(false);
+  const [selectedUserToAdd, setSelectedUserToAdd] = useState('');
 
   async function loadData() {
     try {
@@ -42,14 +44,20 @@ export default function MatchDetail() {
       if (data.participants) setParticipants(data.participants);
 
       if (currentUser) {
-        const [userData, bookingsData] = await Promise.all([
+        const [userData, bookingsData, usersList] = await Promise.all([
           api.getUser(currentUser.uid),
-          api.getUserBookings(currentUser.uid)
+          api.getUserBookings(currentUser.uid),
+          api.getUsers()
         ]);
 
         setIsAdmin(userData?.isAdmin || false);
         const booking = bookingsData.bookings?.find(b => b.matchId === id);
         setUserBooking(booking);
+        
+        // Carichiamo la lista completa solo se admin
+        if (userData?.isAdmin) {
+          setAllUsers(usersList.users || []);
+        }
       }
     } catch (error) {
       console.error('Errore caricamento dati:', error);
@@ -59,38 +67,42 @@ export default function MatchDetail() {
   }
 
   useEffect(() => {
-    let isMounted = true;
-    const fetchInitialData = async () => {
-      try {
-        setLoading(true);
-        const data = await api.getMatch(id);
-        if (!isMounted) return;
-
-        if (data.match) setMatch(data.match);
-        if (data.participants) setParticipants(data.participants);
-
-        if (currentUser) {
-          const [userData, bookingsData] = await Promise.all([
-            api.getUser(currentUser.uid),
-            api.getUserBookings(currentUser.uid)
-          ]);
-          
-          if (isMounted) {
-            setIsAdmin(userData?.isAdmin || false);
-            const booking = bookingsData.bookings?.find(b => b.matchId === id);
-            setUserBooking(booking);
-          }
-        }
-      } catch (error) {
-        console.error('Errore caricamento dati iniziale:', error);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    fetchInitialData();
-    return () => { isMounted = false; };
+    loadData();
   }, [id, currentUser?.uid]);
+
+  // Filtra utenti non ancora iscritti (confermati o in attesa)
+  const availableUsers = allUsers.filter(u => 
+    !participants.some(p => p.userId === u.userId)
+  );
+
+  async function handleAdminAddUser() {
+    if (!selectedUserToAdd) return;
+    try {
+      setLoading(true);
+      await api.adminAddParticipant(id, selectedUserToAdd);
+      setSelectedUserToAdd('');
+      await loadData();
+    } catch (error) {
+      alert("Errore nell'aggiunta dell'utente");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRemoveParticipant(bookingId, userName) {
+    if (!confirm(`Vuoi rimuovere ${userName} dalla partita?`)) return;
+    try {
+      setLoading(true);
+      await api.adminRemoveParticipant(bookingId);
+      await loadData();
+    } catch (error) {
+      alert("Errore nella rimozione");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ... (handleBooking, handleCancelBooking, handleDeleteMatch invariati)
 
   async function handleBooking() {
     try {
@@ -167,6 +179,7 @@ export default function MatchDetail() {
 
   return (
     <div className="match-detail">
+      {/* HEADER E GRID INVARIATI... */}
       <div className="match-detail-header">
         <div className="header-left">
           <button onClick={() => navigate(-1)} className="btn-back">← Indietro</button>
@@ -222,19 +235,59 @@ export default function MatchDetail() {
               
               {showParticipants && (
                 <div className="participants-content animate-fade-in">
+                  
+                  {/* SEZIONE ADMIN PER AGGIUNGERE UTENTE */}
+                  {isAdmin && availableUsers.length > 0 && (
+                    <div className="admin-add-box" style={{ marginBottom: '20px', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '600' }}>
+                        <UserPlus size={18} /> Aggiungi utente alla partita
+                      </label>
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <select 
+                          style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                          value={selectedUserToAdd}
+                          onChange={(e) => setSelectedUserToAdd(e.target.value)}
+                        >
+                          <option value="">Seleziona un utente...</option>
+                          {availableUsers.map(u => (
+                            <option key={u.userId} value={u.userId}>{u.nome} {u.cognome} ({u.email})</option>
+                          ))}
+                        </select>
+                        <button 
+                          className="btn-primary" 
+                          onClick={handleAdminAddUser}
+                          disabled={!selectedUserToAdd}
+                          style={{ padding: '8px 16px' }}
+                        >
+                          Aggiungi
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {confirmedPlayers.length === 0 ? (
                     <p className="no-matches">Nessun iscritto confermato.</p>
                   ) : (
                     <div className="participants-mini-list">
                       {confirmedPlayers.map(p => (
-                        <div key={p.userId || Math.random()} className="p-badge">
-                          <div className="p-avatar">
-                            {p.nome ? p.nome[0] : 'U'}{p.cognome ? p.cognome[0] : ''}
+                        <div key={p.userId || Math.random()} className="p-badge" style={{ justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="p-avatar">
+                              {p.nome ? p.nome[0] : 'U'}{p.cognome ? p.cognome[0] : ''}
+                            </div>
+                            <div className="p-text">
+                              <span className="p-name">{p.nome} {p.cognome}</span>
+                              <span className="p-role">{p.ruolo || 'Giocatore'}</span>
+                            </div>
                           </div>
-                          <div className="p-text">
-                            <span className="p-name">{p.nome} {p.cognome}</span>
-                            <span className="p-role">{p.ruolo || 'Giocatore'}</span>
-                          </div>
+                          {isAdmin && (
+                            <button 
+                              onClick={() => handleRemoveParticipant(p.bookingId, `${p.nome} ${p.cognome}`)}
+                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -245,14 +298,24 @@ export default function MatchDetail() {
                       <h4 style={{fontSize:'0.9rem', marginBottom:'10px', color: '#f39c12'}}>In lista d'attesa:</h4>
                       <div className="participants-mini-list">
                         {waitingPlayers.map((p, index) => (
-                          <div key={p.userId || index} className="p-badge">
-                             <div className="p-avatar" style={{backgroundColor: '#f39c12'}}>
-                              {p.nome ? p.nome[0] : 'U'}
-                            </div>
-                            <div className="p-text">
-                              <span className="p-name">{p.nome} {p.cognome}</span>
-                              <span className="p-role">Lista attesa #{index + 1}</span>
-                            </div>
+                          <div key={p.userId || index} className="p-badge" style={{ justifyContent: 'space-between' }}>
+                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div className="p-avatar" style={{backgroundColor: '#f39c12'}}>
+                                  {p.nome ? p.nome[0] : 'U'}
+                                </div>
+                                <div className="p-text">
+                                  <span className="p-name">{p.nome} {p.cognome}</span>
+                                  <span className="p-role">Lista attesa #{index + 1}</span>
+                                </div>
+                             </div>
+                             {isAdmin && (
+                                <button 
+                                  onClick={() => handleRemoveParticipant(p.bookingId, `${p.nome} ${p.cognome}`)}
+                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                             )}
                           </div>
                         ))}
                       </div>
@@ -274,6 +337,7 @@ export default function MatchDetail() {
             </div>
           )}
 
+          {/* ... RESTO DEL COMPONENTE INVARIATO ... */}
           <div className="booking-actions">
             {isPast ? (
               <div className="alert alert-warning" style={{ textAlign: 'center', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)' }}>
