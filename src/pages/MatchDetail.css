@@ -4,6 +4,7 @@
   margin: 0 auto;
   padding: 40px 24px;
   color: var(--text-primary);
+  box-sizing: border-box;
 }
 
 .match-detail-header {
@@ -17,8 +18,9 @@
 
 .header-left {
   display: flex;
-  align-items: center;
-  gap: 1.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
 .btn-back {
@@ -28,8 +30,10 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  margin-bottom: 16px;
   padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .btn-back:hover {
@@ -38,12 +42,13 @@
 
 .match-detail-header h1 {
   font-size: 25px;
-  margin-bottom: 12px;
+  margin: 0;
   color: var(--text-primary);
 }
 
 .match-status {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -68,6 +73,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0; 
 }
 
 .info-card {
@@ -76,6 +82,7 @@
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   border: 1px solid var(--border-color);
+  box-sizing: border-box;
 }
 
 .info-card h3 {
@@ -114,45 +121,143 @@
   margin: 0;
 }
 
-/* --- MAPPA --- */
-.map-header {
+/* --- PARTECIPANTI (COLLAPSIBLE & ADMIN) --- */
+.participants-collapsible {
+  margin-top: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card-bg);
+}
+
+.participants-trigger {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
-}
-
-.map-header h3 {
-  margin: 0;
-  font-size: 20px;
+  padding: 15px 20px;
+  cursor: pointer;
+  background: var(--card-bg);
   color: var(--text-primary);
+  transition: background 0.2s;
 }
 
-.link-google-maps {
-  font-size: 0.9rem;
-  color: #3b82f6;
-  text-decoration: none;
+.participants-trigger:hover {
+  background: var(--bg-hover);
+}
+
+.trigger-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   font-weight: 600;
 }
 
-.link-google-maps:hover {
-  text-decoration: underline;
+.participants-content {
+  padding: 15px;
+  width: 100%;
+  box-sizing: border-box; 
+  overflow-x: hidden;
 }
 
-.map-container {
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  margin-bottom: 16px;
+/* BOX AGGIUNTA UTENTE (ADMIN) */
+.admin-add-box {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: var(--bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-sizing: border-box;
+}
+
+.admin-add-box label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.admin-add-box > div {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+}
+
+.admin-add-box select {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text-primary);
   border: 1px solid var(--border-color);
 }
 
-/* --- AZIONI PROPRIETARIO (Pulsanti Modifica/Elimina) --- */
+.admin-add-box select, .admin-add-box .btn-primary {
+    width: 100%;
+  }
+
+/* LISTA GIOCATORI */
+.participants-mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.p-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  box-sizing: border-box;
+}
+
+.p-avatar {
+  width: 36px;
+  height: 36px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.p-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0; /* Cruciale per ellipsis */
+}
+
+.p-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.p-role {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* --- BOTTONI AZIONI (MODIFICA, ELIMINA, PRENOTA) --- */
 .owner-actions-bottom {
   display: flex;
   gap: 12px;
-  margin-top: 20px;
-  margin-bottom: 20px;
+  margin: 20px 0;
 }
 
 .btn-delete-match {
@@ -169,6 +274,7 @@
   font-weight: 600;
   transition: all 0.2s;
   flex: 1;
+  margin-top: 10px;
 }
 
 .btn-delete-match:hover {
@@ -190,6 +296,7 @@
   font-weight: 600;
   transition: all 0.2s;
   flex: 1;
+  margin-top: 10px;
 }
 
 .btn-edit-match:hover {
@@ -197,96 +304,21 @@
   color: white;
 }
 
-/* --- PARTECIPANTI (COLLAPSIBLE) --- */
-.participants-collapsible {
-  margin-top: 20px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--card-bg);
+.btn-book {
+  transition: transform 0.2s;
 }
 
-.participants-trigger {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  cursor: pointer;
-  background: var(--card-bg);
-  color: var(--text-primary);
-  transition: background 0.2s;
-}
-
-.participants-trigger:hover {
-  background: var(--bg-color);
-}
-
-.trigger-label {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 600;
-}
-
-.participants-content {
-  padding: 15px 20px;
-  border-top: 1px solid var(--border-color);
-  background: var(--card-bg);
-}
-
-.participants-mini-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.p-badge {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px;
-  border-radius: 8px;
-  background: var(--bg-color);
-  border: 1px solid var(--border-color);
-}
-
-.p-avatar {
-  width: 32px;
-  height: 32px;
-  background: var(--primary);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.p-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.p-name {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.p-role {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+.btn-book:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
 }
 
 /* --- BADGE STATO ISCRIZIONE --- */
 .status-confirmed-badge {
-  padding: 5px 12px;
+  padding: 6px 12px;
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 600;
-  display: inline-block;
 }
 
 .status-confirmed-badge.confirmed {
@@ -301,7 +333,6 @@
   border: 1px solid #ffe0b2;
 }
 
-/* Adattamento Dark Mode per i badge colorati */
 [data-theme='dark'] .status-confirmed-badge.confirmed {
   background-color: rgba(46, 125, 50, 0.2);
   color: #81c784;
@@ -312,80 +343,44 @@
   color: #ffb74d;
 }
 
-.booking-confirmation-box {
-  text-align: center;
-  background: rgba(46, 125, 50, 0.1);
-  padding: 15px;
-  border-radius: 10px;
-  margin-top: 20px;
-  border: 1px solid var(--primary);
-}
-
-.booking-confirmation-box p {
-  color: var(--primary);
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-/* --- VALUTAZIONI (RATINGS) --- */
-.ratings-section {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  border: 1px solid var(--border-color);
-}
-
-.rating-item {
-  padding: 16px;
-  background: var(--bg-color);
+.btn-map {
+  background-color: var(--primary); 
+  border: none;
   border-radius: 8px;
-  margin-bottom: 16px;
+  padding: 10; 
+  cursor: pointer;
+  transition: transform 0.2s;
+  margin-top: 10px;
 }
 
-.rating-comment {
-  color: var(--text-secondary);
+.btn-map:hover {
+  transform: scale(1.05);
 }
 
-/* --- MODALE VALUTAZIONE --- */
-.rating-form-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
+.btn-map .link-google-maps {
+  display: inline-block;
+  padding: 8px 16px;
+  color: white !important; 
+  text-decoration: none !important; 
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
-.rating-form {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 32px;
-  max-width: 500px;
-  width: 100%;
-  border: 1px solid var(--border-color);
+.btn-map .link-google-maps:hover {
+  text-decoration: none; 
 }
 
-/* --- ANIMAZIONI E MEDIA QUERIES --- */
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 768px) {
+/* --- MEDIA QUERIES MOBILE --- */
+@media (max-width: 900px) {
   .match-detail-grid {
     grid-template-columns: 1fr;
   }
+  
   .owner-actions-bottom {
     flex-direction: column;
+  }
+
+  .p-name {
+    max-width: 160px;
   }
 }

@@ -378,12 +378,14 @@ export default function MatchDetail() {
         <div className="map-section">
           <div className="map-header">
             <h3>Posizione Campo</h3>
-            <a 
-              href={`https://www.google.com/maps/search/?api=1&query=${match.lat},${match.lng}`} 
-              target="_blank" rel="noopener noreferrer" className="link-google-maps"
-            >
-              Apri in Google Maps
-            </a>
+            <button class="btn-map">
+              <a 
+                href={`https://www.google.com/maps/search/?api=1&query=${match.lat},${match.lng}`} 
+                target="_blank" rel="noopener noreferrer" className="link-google-maps"
+              >
+                Apri in Google Maps
+              </a>
+            </button>
           </div>
           <div className="map-container" style={{height: '400px'}}>
             <MapContainer center={[match.lat, match.lng]} zoom={15} style={{height: '100%', width: '100%'}} scrollWheelZoom={false}>
