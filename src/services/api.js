@@ -162,5 +162,18 @@ export const api = {
       method: 'DELETE'
     });
     return response.json();
+  },
+
+  async getFields() {
+    const res = await fetch(`${API_BASE}/fields`);
+    return res.json();
+  },
+  async saveField(fieldData) {
+    const res = await fetch(`${API_BASE}/fields`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fieldData)
+    });
+    return res.json();
   }
 };

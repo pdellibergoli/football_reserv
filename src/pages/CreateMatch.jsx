@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
+import { Save } from 'lucide-react'; 
 import './CreateMatch.css';
 
 export default function CreateMatch() {
@@ -16,6 +17,9 @@ export default function CreateMatch() {
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const [savedFields, setSavedFields] = useState([]);
+  const [selectedFieldId, setSelectedFieldId] = useState('');
 
   const [formData, setFormData] = useState({
     tipologia: 'Calcio a 5',
@@ -32,10 +36,14 @@ export default function CreateMatch() {
   });
 
   useEffect(() => {
-    if (isEditMode) {
-      const loadMatchData = async () => {
-        try {
-          setLoading(true);
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        
+        const fieldsData = await api.getFields();
+        setSavedFields(fieldsData.fields || []);
+
+        if (isEditMode) {
           const response = await api.getMatch(id);
           const m = response.match;
           
@@ -53,15 +61,78 @@ export default function CreateMatch() {
             lng: m.lng
           });
           setSearchQuery(m.indirizzo);
-        } catch (err) {
-          setError('Errore nel caricamento della partita.');
-        } finally {
-          setLoading(false);
         }
-      };
-      loadMatchData();
-    }
+      } catch (err) {
+        console.error("Errore caricamento:", err);
+        setError('Errore nel caricamento dei dati.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadInitialData();
   }, [id, isEditMode]);
+
+  const handleFieldSelect = (e) => {
+    const fieldId = e.target.value;
+    setSelectedFieldId(fieldId);
+    
+    if (fieldId === "") {
+      return;
+    }
+
+    const field = savedFields.find(f => f.fieldId === fieldId);
+    if (field) {
+      setFormData(prev => ({
+        ...prev,
+        luogo: field.nome,
+        indirizzo: field.indirizzo,
+        citta: field.citta,
+        provincia: field.provincia,
+        lat: field.lat,
+        lng: field.lng
+      }));
+      setSearchQuery(field.indirizzo);
+    }
+  };
+
+  const handleSaveCurrentField = async () => {
+    if (!formData.lat || !formData.luogo) {
+      return alert("Assicurati di aver inserito un nome e selezionato un indirizzo dai suggerimenti.");
+    }
+
+    const isAlreadySaved = savedFields.some(
+      (field) => field.indirizzo.toLowerCase() === formData.indirizzo.toLowerCase()
+    );
+
+    if (isAlreadySaved) {
+      return alert("Questo campo sportivo è già presente nei tuoi preferiti!");
+    }
+    
+    try {
+      setLoading(true);
+      
+      await api.saveField({
+        nome: formData.luogo,
+        indirizzo: formData.indirizzo,
+        citta: formData.citta,
+        provincia: formData.provincia,
+        lat: formData.lat,
+        lng: formData.lng
+      });
+      
+      alert("Nuovo campo salvato con successo!");
+      
+      const fieldsData = await api.getFields();
+      setSavedFields(fieldsData.fields || []);
+      
+    } catch (err) {
+      console.error("Errore salvataggio campo:", err);
+      alert("Errore durante il salvataggio del campo.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -84,13 +155,11 @@ export default function CreateMatch() {
   const performSearch = async (query) => {
     if (query.length < 4) return;
     setIsSearching(true);
-    
     try {
       const response = await fetch(
         `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=${encodeURIComponent(query)}&maxLocations=5&outFields=Addr_type,City,PlaceName,Region&countryCode=ITA`
       );
       const data = await response.json();
-      
       if (data.candidates) {
         const formatted = data.candidates.map(item => ({
           display_name: item.address,
@@ -119,6 +188,7 @@ export default function CreateMatch() {
     }));
     setSearchQuery(s.display_name);
     setSuggestions([]);
+    setSelectedFieldId('');
   };
 
   function handleChange(e) {
@@ -155,9 +225,7 @@ export default function CreateMatch() {
       
       if (isEditMode) {
         const response = await api.updateMatch(id, formData);
-        
         navigate(`/match/${id}`);
-
         if (response.success && response.emails) {
           triggerNotifications('update', response.emails, id, formData);
         }
@@ -169,11 +237,8 @@ export default function CreateMatch() {
           stato: 'active',
           createdAt: new Date().toISOString()
         };
-        
         const response = await api.createMatch(newMatchData);
-        
         navigate('/');
-
         if (response.success && response.emails) {
           triggerNotifications('new', response.emails, response.matchId, formData);
         }
@@ -193,6 +258,19 @@ export default function CreateMatch() {
         {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleSubmit}>
+          
+          <div className="form-group">
+            <label>Seleziona un campo salvato</label>
+            <select value={selectedFieldId} onChange={handleFieldSelect}>
+              <option value="">-- Scegli un campo esistente o scrivi sotto --</option>
+              {savedFields.map(f => (
+                <option key={f.fieldId} value={f.fieldId}>
+                  {f.nome} ({f.citta})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="form-group">
             <label>Tipologia</label>
             <select name="tipologia" value={formData.tipologia} onChange={handleChange}>
@@ -216,7 +294,24 @@ export default function CreateMatch() {
 
           <div className="form-group">
             <label>Nome Centro Sportivo</label>
-            <input type="text" name="luogo" placeholder="es. Green Park" value={formData.luogo} onChange={handleChange} required />
+            <div className="input-with-action">
+              <input 
+                type="text" 
+                name="luogo" 
+                placeholder="es. Green Park" 
+                value={formData.luogo} 
+                onChange={handleChange} 
+                required 
+              />
+              <button 
+                type="button" 
+                className="btn-icon-action" 
+                onClick={handleSaveCurrentField}
+                title="Salva nei preferiti"
+              >
+                <Save size={20} />
+              </button>
+            </div>
           </div>
 
           <div className="form-group address-search-container">
