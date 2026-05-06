@@ -16,7 +16,7 @@ export default function ForgotPassword() {
       setError('');
       setLoading(true);
       await api.resetPassword(email);
-      setMessage('Controlla la tua casella email per le istruzioni di recupero.');
+      setMessage('Controlla la tua casella email (anche nelle Spam) per le istruzioni di recupero.');
     } catch (err) {
       setError('Errore: l\'indirizzo email potrebbe non essere corretto.');
     } finally {

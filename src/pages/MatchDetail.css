@@ -5,6 +5,7 @@
   padding: 40px 24px;
   color: var(--text-primary);
   box-sizing: border-box;
+  justify-content: center !important;
 }
 
 .match-detail-header {
@@ -313,7 +314,43 @@
   filter: brightness(1.1);
 }
 
-/* --- BADGE STATO ISCRIZIONE --- */
+.booking-confirmation-box {
+  display: flex;
+  flex-direction: column; /* Dispone gli elementi dall'alto verso il basso */
+  align-items: center;    /* CENTRA tutti gli elementi orizzontalmente */
+  justify-content: center;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.status-message {
+  margin: 10px 0 0 0;      
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-align: center;      
+}
+
+.booking-confirmation-box.confirmed {
+  background: rgba(46, 125, 50, 0.1);
+  border: 1px solid #27ae60;
+}
+
+.booking-confirmation-box.confirmed .status-message {
+  color: #27ae60;
+}
+
+.booking-confirmation-box.waiting {
+  background: rgba(243, 156, 18, 0.1);
+  border: 1px solid #f39c12;
+}
+
+.booking-confirmation-box.waiting .status-message {
+  color: #f39c12;
+}
+
 .status-confirmed-badge {
   padding: 6px 12px;
   border-radius: 20px;

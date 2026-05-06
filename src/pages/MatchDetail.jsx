@@ -30,7 +30,7 @@ export default function MatchDetail() {
   
   const [match, setMatch] = useState(null);
   const [participants, setParticipants] = useState([]);
-  const [allUsers, setAllUsers] = useState([]); // Per la lista admin
+  const [allUsers, setAllUsers] = useState([]);
   const [userBooking, setUserBooking] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false); 
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,6 @@ export default function MatchDetail() {
         const booking = bookingsData.bookings?.find(b => b.matchId === id);
         setUserBooking(booking);
         
-        // Carichiamo la lista completa solo se admin
         if (userData?.isAdmin) {
           setAllUsers(usersList.users || []);
         }
@@ -70,7 +69,6 @@ export default function MatchDetail() {
     loadData();
   }, [id, currentUser?.uid]);
 
-  // Filtra utenti non ancora iscritti (confermati o in attesa)
   const availableUsers = allUsers.filter(u => 
     !participants.some(p => p.userId === u.userId)
   );
@@ -101,8 +99,6 @@ export default function MatchDetail() {
       setLoading(false);
     }
   }
-
-  // ... (handleBooking, handleCancelBooking, handleDeleteMatch invariati)
 
   async function handleBooking() {
     try {
@@ -179,7 +175,6 @@ export default function MatchDetail() {
 
   return (
     <div className="match-detail">
-      {/* HEADER E GRID INVARIATI... */}
       <div className="match-detail-header">
         <div className="header-left">
           <button onClick={() => navigate(-1)} className="btn-back">← Indietro</button>
@@ -236,7 +231,6 @@ export default function MatchDetail() {
               {showParticipants && (
                 <div className="participants-content animate-fade-in">
                   
-                  {/* SEZIONE ADMIN PER AGGIUNGERE UTENTE */}
                   {isAdmin && availableUsers.length > 0 && (
                     <div className="admin-add-box" style={{ marginBottom: '20px', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '600' }}>
@@ -337,7 +331,6 @@ export default function MatchDetail() {
             </div>
           )}
 
-          {/* ... RESTO DEL COMPONENTE INVARIATO ... */}
           <div className="booking-actions">
             {isPast ? (
               <div className="alert alert-warning" style={{ textAlign: 'center', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)' }}>
@@ -354,7 +347,7 @@ export default function MatchDetail() {
                   ) : (
                     <Clock8 color="#f39c12" size={24} style={{ marginBottom: '10px' }} />
                   )}
-                  <p>{userBooking.status === 'confirmed' ? 'Sei iscritto!' : 'Sei in lista d\'attesa.'}</p>
+                  <p className="status-message">{userBooking.status === 'confirmed' ? 'Sei iscritto!' : 'Sei in lista d\'attesa.'}</p>
                   <button onClick={handleCancelBooking} className="btn-delete-match" style={{ width: '100%', justifyContent: 'center' }}>
                     Annulla {userBooking.status === 'confirmed' ? 'Prenotazione' : 'Richiesta'}
                   </button>
